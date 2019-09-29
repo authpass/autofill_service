@@ -1,8 +1,8 @@
 name: autofill_service
-description: A new flutter plugin project.
+description: Implements a very simple version for android autofill service as a plugin for flutter.
 version: 0.0.1
-author:
-homepage:
+author: Herbert Poul <herbert@codeux.design>
+homepage: https://github.com/authpass/autofill_service
 
 environment:
   sdk: ">=2.1.0 <3.0.0"
