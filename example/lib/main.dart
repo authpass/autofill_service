@@ -1,10 +1,21 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'dart:async';
 
 import 'package:flutter/services.dart';
 import 'package:autofill_service/autofill_service.dart';
+import 'package:logging/logging.dart';
+import 'package:logging_appenders/logging_appenders.dart';
 
-void main() => runApp(MyApp());
+final _logger = Logger('main');
+
+void main() {
+  Logger.root.level = Level.ALL;
+  PrintAppender().attachToLogger(Logger.root);
+  _logger.info('Initialized logger.');
+  runApp(MyApp());
+}
 
 class MyApp extends StatefulWidget {
   @override
@@ -12,43 +23,57 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  String _platformVersion = 'Unknown';
+  bool _hasEnabledAutofillServices;
 
   @override
   void initState() {
     super.initState();
-    initPlatformState();
+    _updateStatus();
   }
 
   // Platform messages are asynchronous, so we initialize in an async method.
-  Future<void> initPlatformState() async {
-    String platformVersion;
-    // Platform messages may fail, so we use a try/catch PlatformException.
-    try {
-      platformVersion = await AutofillService.platformVersion;
-    } on PlatformException {
-      platformVersion = 'Failed to get platform version.';
-    }
-
-    // If the widget was removed from the tree while the asynchronous platform
-    // message was in flight, we want to discard the reply rather than calling
-    // setState to update our non-existent appearance.
-    if (!mounted) return;
-
-    setState(() {
-      _platformVersion = platformVersion;
-    });
+  Future<void> _updateStatus() async {
+    _hasEnabledAutofillServices =
+        await AutofillService().hasEnabledAutofillServices;
+    setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
+    _logger.info(
+        'Building AppState. defaultRouteName:${WidgetsBinding.instance.window.defaultRouteName}');
     return MaterialApp(
       home: Scaffold(
         appBar: AppBar(
           title: const Text('Plugin example app'),
         ),
         body: Center(
-          child: Text('Running on: $_platformVersion\n'),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Text(
+                  'hasEnabledAutofillServices: $_hasEnabledAutofillServices\n'),
+              RaisedButton(
+                child: const Text('requestSetAutofillService'),
+                onPressed: () async {
+                  _logger.fine('Starting request.');
+                  final response =
+                      await AutofillService().requestSetAutofillService();
+                  _logger.fine('request finished $response');
+                  await _updateStatus();
+                },
+              ),
+              RaisedButton(
+                child: const Text('finish'),
+                onPressed: () async {
+                  _logger.fine('Starting request.');
+                  final response = await AutofillService().resultWithDataset();
+                  _logger.fine('resultWithDataset $response');
+                  await _updateStatus();
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
