@@ -50,7 +50,8 @@ class AutofillServicePlugin(val registrar: Registrar) : MethodCallHandler,
 
     companion object {
         // some creative way so we have some more or less unique result code? 🤷️
-        val REQUEST_CODE_SET_AUTOFILL_SERVICE = AutofillServicePlugin::class.java.hashCode() and 0xffff
+        val REQUEST_CODE_SET_AUTOFILL_SERVICE =
+            AutofillServicePlugin::class.java.hashCode() and 0xffff
 
         @JvmStatic
         fun registerWith(registrar: Registrar) {
@@ -74,7 +75,7 @@ class AutofillServicePlugin(val registrar: Registrar) : MethodCallHandler,
             }
             "requestSetAutofillService" -> {
                 val intent = Intent(Settings.ACTION_REQUEST_SET_AUTOFILL_SERVICE);
-                intent.data = Uri.parse("package:com.example.android.autofill.service");
+                intent.data = Uri.parse("package:com.example.android.autofill.service")
                 logger.debug { "enableService(): intent=$intent" }
                 requestSetAutofillServiceResult = result
                 registrar.activity()
@@ -113,9 +114,9 @@ class AutofillServicePlugin(val registrar: Registrar) : MethodCallHandler,
 
     private fun resultWithDatasets(pwDatasets: List<PwDataset>, result: Result) {
 
-        val structureParcel =
-            lastIntent?.extras?.getParcelable<AssistStructure>(AutofillManager.EXTRA_ASSIST_STRUCTURE)
-                ?: registrar.activity().intent?.extras?.getParcelable<AssistStructure>(
+        val structureParcel: AssistStructure? =
+            lastIntent?.extras?.getParcelable(AutofillManager.EXTRA_ASSIST_STRUCTURE)
+                ?: registrar.activity().intent?.extras?.getParcelable(
                     AutofillManager.EXTRA_ASSIST_STRUCTURE
                 )
         if (structureParcel == null) {
@@ -133,9 +134,11 @@ class AutofillServicePlugin(val registrar: Registrar) : MethodCallHandler,
         logger.debug { "structure: $structure /// autofillIds: $autofillIds" }
         logger.info { "packageName: ${registrar.context().packageName}" }
 
-        val remoteViews = { RemoteViewsHelper.viewsWithNoAuth(
-            registrar.context().packageName, "Fill Me"
-        )}
+        val remoteViews = {
+            RemoteViewsHelper.viewsWithNoAuth(
+                registrar.context().packageName, "Fill Me"
+            )
+        }
         structure.fieldIds.values.forEach { it.sortByDescending { it.heuristic.weight } }
 
         val datasetResponse = FillResponse.Builder()
@@ -144,42 +147,64 @@ class AutofillServicePlugin(val registrar: Registrar) : MethodCallHandler,
                 null,
                 null
             )
-            .apply { pwDatasets.forEach { pw -> addDataset(Dataset.Builder(remoteViews()).apply {
-                setId("test ${pw.username}")
-                structure.allNodes.forEach { node ->
-                    if (node.isFocused && node.autofillId != null) {
-                        logger.debug("Setting focus node. ${node.autofillId}")
-                        setValue(
-                            node.autofillId!!,
-                            AutofillValue.forText("focus"),
-                            RemoteViews(
-                                registrar.context().packageName,
-                                android.R.layout.simple_list_item_1
-                            ).apply {
-                                setTextViewText(android.R.id.text1, pw.label + "(focus)")
-                            })
+            .apply {
+                pwDatasets.forEach { pw ->
+                    addDataset(Dataset.Builder(remoteViews()).apply {
+                        setId("test ${pw.username}")
+                        structure.allNodes.forEach { node ->
+                            if (node.isFocused && node.autofillId != null) {
+                                logger.debug("Setting focus node. ${node.autofillId}")
+                                setValue(
+                                    node.autofillId!!,
+                                    AutofillValue.forText("focus"),
+                                    RemoteViews(
+                                        registrar.context().packageName,
+                                        android.R.layout.simple_list_item_1
+                                    ).apply {
+                                        setTextViewText(android.R.id.text1, pw.label + "(focus)")
+                                    })
 
-                    }
+                            }
+                        }
+                        structure.fieldIds[AutofillInputType.Email]?.forEach { field ->
+                            logger.debug("Adding data set for email ${field.autofillId}")
+                            setValue(
+                                field.autofillId,
+                                AutofillValue.forText(pw.username),
+                                RemoteViews(
+                                    registrar.context().packageName,
+                                    android.R.layout.simple_list_item_1
+                                ).apply {
+                                    setTextViewText(android.R.id.text1, pw.label)
+                                })
+                        }
+                        structure.fieldIds[AutofillInputType.Password]?.forEach { field ->
+                            logger.debug("Adding data set for password ${field.autofillId}")
+                            setValue(
+                                field.autofillId,
+                                AutofillValue.forText(pw.password),
+                                RemoteViews(
+                                    registrar.context().packageName,
+                                    android.R.layout.simple_list_item_1
+                                ).apply {
+                                    setTextViewText(android.R.id.text1, pw.label)
+                                })
+                        }
+                        structure.fieldIds[AutofillInputType.UserName]?.forEach { field ->
+                            logger.debug("Adding data set for username ${field.autofillId}")
+                            setValue(
+                                field.autofillId,
+                                AutofillValue.forText(pw.username),
+                                RemoteViews(
+                                    registrar.context().packageName,
+                                    android.R.layout.simple_list_item_1
+                                ).apply {
+                                    setTextViewText(android.R.id.text1, pw.label)
+                                })
+                        }
+                    }.build())
                 }
-                structure.fieldIds[AutofillInputType.Email]?.forEach { field ->
-                    logger.debug("Adding data set for email ${field.autofillId}")
-                    setValue(field.autofillId, AutofillValue.forText(pw.username), RemoteViews(registrar.context().packageName, android.R.layout.simple_list_item_1).apply {
-                        setTextViewText(android.R.id.text1, pw.label)
-                    })
-                }
-                structure.fieldIds[AutofillInputType.Password]?.forEach { field ->
-                    logger.debug("Adding data set for password ${field.autofillId}")
-                    setValue(field.autofillId, AutofillValue.forText(pw.password), RemoteViews(registrar.context().packageName, android.R.layout.simple_list_item_1).apply {
-                        setTextViewText(android.R.id.text1, pw.label)
-                    })
-                }
-                structure.fieldIds[AutofillInputType.UserName]?.forEach { field ->
-                    logger.debug("Adding data set for username ${field.autofillId}")
-                    setValue(field.autofillId, AutofillValue.forText(pw.username), RemoteViews(registrar.context().packageName, android.R.layout.simple_list_item_1).apply {
-                        setTextViewText(android.R.id.text1, pw.label)
-                    })
-                }
-            }.build()) } }
+            }
             .build()
         val replyIntent = Intent().apply {
             // Send the data back to the service.
