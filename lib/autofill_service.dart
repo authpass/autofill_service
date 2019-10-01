@@ -13,13 +13,13 @@ class AutofillPreferences {
   AutofillPreferences({this.enableDebug});
 
   factory AutofillPreferences.fromJson(Map<dynamic, dynamic> json) =>
-      AutofillPreferences(enabled: json['enableDebug'] as bool);
+      AutofillPreferences(enableDebug: json['enableDebug'] as bool);
 
   final bool enableDebug;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
-    'enableDebug': enableDebug,
-  };
+        'enableDebug': enableDebug,
+      };
 }
 
 class AutofillService {
@@ -28,7 +28,7 @@ class AutofillService {
   AutofillService._();
 
   static const MethodChannel _channel =
-  MethodChannel('codeux.design/autofill_service');
+      MethodChannel('codeux.design/autofill_service');
 
   static final _instance = AutofillService._();
 
@@ -49,7 +49,7 @@ class AutofillService {
       return AutofillServiceStatus.unsupported;
     }
     final enabled =
-    await _channel.invokeMethod<bool>('hasEnabledAutofillServices');
+        await _channel.invokeMethod<bool>('hasEnabledAutofillServices');
     if (enabled == null) {
       return AutofillServiceStatus.unsupported;
     } else if (enabled) {
@@ -63,9 +63,13 @@ class AutofillService {
     return await _channel.invokeMethod('requestSetAutofillService');
   }
 
-  Future<bool> resultWithDataset({String label, String username, String password}) async {
-    return await _channel.invokeMethod('resultWithDataset',
-        <String, dynamic>{'label': label, 'username': username, 'password': password});
+  Future<bool> resultWithDataset(
+      {String label, String username, String password}) async {
+    return await _channel.invokeMethod('resultWithDataset', <String, dynamic>{
+      'label': label,
+      'username': username,
+      'password': password
+    });
   }
 
   Future<void> disableAutofillServices() async {
@@ -73,11 +77,12 @@ class AutofillService {
   }
 
   Future<AutofillPreferences> getPreferences() async {
-    final json = await _channel.invokeMapMethod<String, dynamic>('getPreferences');
+    final json =
+        await _channel.invokeMapMethod<String, dynamic>('getPreferences');
     return AutofillPreferences.fromJson(json);
   }
 
   Future<void> setPreferences(AutofillPreferences preferences) async {
-    await _channel.invokeMethod('setPreferences', preferences.toJson());
+    await _channel.invokeMethod<void>('setPreferences', preferences.toJson());
   }
 }

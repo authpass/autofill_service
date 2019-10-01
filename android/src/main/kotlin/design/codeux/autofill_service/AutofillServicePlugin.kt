@@ -1,6 +1,5 @@
 package design.codeux.autofill_service
 
-import android.app.Activity
 import android.app.Activity.RESULT_OK
 import android.app.assist.AssistStructure
 import android.content.Intent
@@ -29,8 +28,20 @@ data class PwDataset(
 )
 
 @RequiresApi(Build.VERSION_CODES.O)
-class AutofillServicePlugin(val registrar: Registrar) : MethodCallHandler,
+class AutofillServicePluginImpl(val registrar: Registrar) : MethodCallHandler,
     PluginRegistry.ActivityResultListener, PluginRegistry.NewIntentListener {
+
+    companion object {
+        // some creative way so we have some more or less unique result code? 🤷️
+        val REQUEST_CODE_SET_AUTOFILL_SERVICE =
+            AutofillServicePlugin::class.java.hashCode() and 0xffff
+
+    }
+
+    init {
+        registrar.addActivityResultListener(this)
+        registrar.addNewIntentListener(this)
+    }
 
     val autofillManager =
         requireNotNull(registrar.activity().getSystemService(AutofillManager::class.java))
@@ -41,28 +52,10 @@ class AutofillServicePlugin(val registrar: Registrar) : MethodCallHandler,
         .add(KotlinJsonAdapterFactory())
         .build() as Moshi
 
-    init {
-        val channel = MethodChannel(registrar.messenger(), "codeux.design/autofill_service")
-        channel.setMethodCallHandler(this)
-        registrar.addActivityResultListener(this)
-        registrar.addNewIntentListener(this)
-    }
-
-    companion object {
-        // some creative way so we have some more or less unique result code? 🤷️
-        val REQUEST_CODE_SET_AUTOFILL_SERVICE =
-            AutofillServicePlugin::class.java.hashCode() and 0xffff
-
-        @JvmStatic
-        fun registerWith(registrar: Registrar) {
-            AutofillServicePlugin(registrar)
-        }
-    }
-
     override fun onMethodCall(call: MethodCall, result: Result) {
         when (call.method) {
             "hasAutofillServicesSupport" ->
-                result.success(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+                result.success(true)
             "hasEnabledAutofillServices" ->
                 if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
                     result.success(null)
@@ -79,7 +72,9 @@ class AutofillServicePlugin(val registrar: Registrar) : MethodCallHandler,
                 logger.debug { "enableService(): intent=$intent" }
                 requestSetAutofillServiceResult = result
                 registrar.activity()
-                    .startActivityForResult(intent, REQUEST_CODE_SET_AUTOFILL_SERVICE)
+                    .startActivityForResult(intent,
+                        REQUEST_CODE_SET_AUTOFILL_SERVICE
+                    )
             }
             "resultWithDataset" -> {
                 resultWithDataset(call, result)
@@ -101,7 +96,6 @@ class AutofillServicePlugin(val registrar: Registrar) : MethodCallHandler,
             else -> result.notImplemented()
         }
     }
-
     private fun resultWithDataset(call: MethodCall, result: Result) {
         val label = call.argument<String>("label") ?: "Autofill"
         val username = call.argument<String>("username") ?: ""
@@ -211,7 +205,7 @@ class AutofillServicePlugin(val registrar: Registrar) : MethodCallHandler,
             putExtra(EXTRA_AUTHENTICATION_RESULT, datasetResponse)
         }
 
-        registrar.activity().setResult(Activity.RESULT_OK, replyIntent)
+        registrar.activity().setResult(RESULT_OK, replyIntent)
         registrar.activity().finish()
         result.success(true)
     }
@@ -243,5 +237,30 @@ class AutofillServicePlugin(val registrar: Registrar) : MethodCallHandler,
         }
         return false
     }
+
+}
+
+class AutofillServicePlugin : MethodCallHandler {
+
+    companion object {
+        @JvmStatic
+        fun registerWith(registrar: Registrar) {
+            val channel = MethodChannel(registrar.messenger(), "codeux.design/autofill_service")
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                channel.setMethodCallHandler(AutofillServicePluginImpl(registrar))
+            } else {
+                channel.setMethodCallHandler(AutofillServicePlugin())
+            }
+        }
+    }
+
+    override fun onMethodCall(call: MethodCall, result: Result) {
+        when (call.method) {
+            "hasAutofillServicesSupport" ->
+                result.success(false)
+            else -> result.notImplemented()
+        }
+    }
+
 
 }
