@@ -14,6 +14,7 @@ import androidx.annotation.RequiresApi
 import mu.KotlinLogging
 import android.widget.RemoteViews
 import androidx.annotation.DrawableRes
+import java.util.*
 
 
 private val logger = KotlinLogging.logger {}
@@ -21,13 +22,13 @@ private val logger = KotlinLogging.logger {}
 @RequiresApi(api = Build.VERSION_CODES.O)
 class FlutterMyAutofillService : AutofillService() {
 
-    lateinit var autofillPreferences: AutofillPreferences
-    var unlockLabel = "Autofill"
+    private lateinit var autofillPreferenceStore: AutofillPreferenceStore
+    private var unlockLabel = "Autofill"
 
     override fun onCreate() {
         super.onCreate()
         logger.debug { "Autofill service was created." }
-        autofillPreferences = AutofillPreferences.getInstance(applicationContext)
+        autofillPreferenceStore = AutofillPreferenceStore.getInstance(applicationContext)
     }
 
     override fun onConnected() {
@@ -56,7 +57,7 @@ class FlutterMyAutofillService : AutofillService() {
         val detectedFields = parser.fieldIds.flatMap { it.value }.size
         var useLabel = unlockLabel
         if (detectedFields == 0){
-            if(!autofillPreferences.enableDebug) {
+            if(!autofillPreferenceStore.autofillPreferences.enableDebug) {
                 callback.onSuccess(null)
                 return
             }
@@ -161,7 +162,7 @@ private fun MutableList<AutofillHeuristic>.htmlAttribute(weight: Int, attr: Stri
 private fun MutableList<AutofillHeuristic>.defaults(hint: String, match: String) {
     autofillHint(900, hint)
     idEntry(800, match)
-    heuristic(700) { idEntry?.toLowerCase()?.contains("user") == true }
+    heuristic(700) { idEntry?.toLowerCase(Locale.ROOT)?.contains("user") == true }
 }
 
 @TargetApi(Build.VERSION_CODES.O)
@@ -170,7 +171,7 @@ enum class AutofillInputType(val heuristics: List<AutofillHeuristic>) {
         defaults(View.AUTOFILL_HINT_EMAIL_ADDRESS, "email")
         htmlAttribute(400, "type", "email")
         htmlAttribute(300, "name", "email")
-        heuristic(200) { hint?.toLowerCase()?.contains("mail") == true }
+        heuristic(200) { hint?.toLowerCase(java.util.Locale.ROOT)?.contains("mail") == true }
     }),
     UserName(mutableListOf<AutofillHeuristic>().apply {
         defaults(View.AUTOFILL_HINT_USERNAME, "user")
@@ -314,8 +315,3 @@ class AssistStructureParser(structure: AssistStructure) {
 
 
 }
-
-
-data class ParsedStructure(var usernameId: AutofillId, var passwordId: AutofillId)
-
-data class UserData(var username: String, var password: String)

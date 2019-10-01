@@ -12,6 +12,8 @@ import android.view.autofill.*
 import android.view.autofill.AutofillManager.EXTRA_AUTHENTICATION_RESULT
 import android.widget.RemoteViews
 import androidx.annotation.RequiresApi
+import com.squareup.moshi.Moshi
+import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import io.flutter.plugin.common.*
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
@@ -34,6 +36,10 @@ class AutofillServicePlugin(val registrar: Registrar) : MethodCallHandler,
         requireNotNull(registrar.activity().getSystemService(AutofillManager::class.java))
     var requestSetAutofillServiceResult: Result? = null
     var lastIntent: Intent? = null
+    val moshi = Moshi.Builder()
+        // ... add your own JsonAdapters and factories ...
+        .add(KotlinJsonAdapterFactory())
+        .build() as Moshi
 
     init {
         val channel = MethodChannel(registrar.messenger(), "codeux.design/autofill_service")
@@ -76,6 +82,20 @@ class AutofillServicePlugin(val registrar: Registrar) : MethodCallHandler,
             }
             "resultWithDataset" -> {
                 resultWithDataset(call, result)
+            }
+            "getPreferences" -> {
+                result.success(
+                    moshi.adapter(AutofillPreferences::class.java).toJsonValue(
+                        AutofillPreferenceStore.getInstance(registrar.context()).autofillPreferences
+                    )
+                )
+            }
+            "setPreferences" -> {
+                val prefs = call.argument<Map<String, Any>>("preferences")?.let { data ->
+                    moshi.adapter(AutofillPreferences::class.java).fromJsonValue(data)
+                } ?: throw IllegalArgumentException("Invalid preferences object.")
+                AutofillPreferenceStore.getInstance(registrar.context()).autofillPreferences = prefs
+                result.success(true)
             }
             else -> result.notImplemented()
         }
