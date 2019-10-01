@@ -21,6 +21,12 @@ import mu.KotlinLogging
 
 private val logger = KotlinLogging.logger {}
 
+data class PwDataset(
+    val label: String,
+    val username: String,
+    val password: String
+)
+
 @RequiresApi(Build.VERSION_CODES.O)
 class AutofillServicePlugin(val registrar: Registrar) : MethodCallHandler,
     PluginRegistry.ActivityResultListener, PluginRegistry.NewIntentListener {
@@ -39,7 +45,7 @@ class AutofillServicePlugin(val registrar: Registrar) : MethodCallHandler,
 
     companion object {
         // some creative way so we have some more or less unique result code? 🤷️
-        val REQUEST_CODE_SET_AUTOFILL_SERVICE = AutofillServicePlugin::class.java.hashCode()
+        val REQUEST_CODE_SET_AUTOFILL_SERVICE = AutofillServicePlugin::class.java.hashCode() and 0xffff
 
         @JvmStatic
         fun registerWith(registrar: Registrar) {
@@ -49,8 +55,18 @@ class AutofillServicePlugin(val registrar: Registrar) : MethodCallHandler,
 
     override fun onMethodCall(call: MethodCall, result: Result) {
         when (call.method) {
+            "hasAutofillServicesSupport" ->
+                result.success(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
             "hasEnabledAutofillServices" ->
-                result.success(autofillManager.hasEnabledAutofillServices())
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+                    result.success(null)
+                } else {
+                    result.success(autofillManager.hasEnabledAutofillServices())
+                }
+            "disableAutofillServices" -> {
+                autofillManager.disableAutofillServices()
+                result.success(null)
+            }
             "requestSetAutofillService" -> {
                 val intent = Intent(Settings.ACTION_REQUEST_SET_AUTOFILL_SERVICE);
                 intent.data = Uri.parse("package:com.example.android.autofill.service");
@@ -67,6 +83,16 @@ class AutofillServicePlugin(val registrar: Registrar) : MethodCallHandler,
     }
 
     private fun resultWithDataset(call: MethodCall, result: Result) {
+        val label = call.argument<String>("label") ?: "Autofill"
+        val username = call.argument<String>("username") ?: ""
+        val password = call.argument<String>("password") ?: ""
+        if (password.isBlank()) {
+            logger.warn { "No known password." }
+        }
+        resultWithDatasets(listOf(PwDataset(label, username, password)), result)
+    }
+
+    private fun resultWithDatasets(pwDatasets: List<PwDataset>, result: Result) {
 
         val structureParcel =
             lastIntent?.extras?.getParcelable<AssistStructure>(AutofillManager.EXTRA_ASSIST_STRUCTURE)
@@ -99,34 +125,40 @@ class AutofillServicePlugin(val registrar: Registrar) : MethodCallHandler,
                 null,
                 null
             )
-            .apply { listOf(0, 1, 3, 4).forEach { c -> addDataset(Dataset.Builder(remoteViews()).apply {
-                setId("test $c")
+            .apply { pwDatasets.forEach { pw -> addDataset(Dataset.Builder(remoteViews()).apply {
+                setId("test ${pw.username}")
+                structure.allNodes.forEach { node ->
+                    if (node.isFocused && node.autofillId != null) {
+                        logger.debug("Setting focus node. ${node.autofillId}")
+                        setValue(
+                            node.autofillId!!,
+                            AutofillValue.forText("focus"),
+                            RemoteViews(
+                                registrar.context().packageName,
+                                R.layout.simple_list_item_1
+                            ).apply {
+                                setTextViewText(android.R.id.text1, pw.label + "(focus)")
+                            })
+
+                    }
+                }
                 structure.fieldIds[AutofillInputType.Email]?.forEach { field ->
                     logger.debug("Adding data set for email ${field.autofillId}")
-                    setValue(field.autofillId, AutofillValue.forText("some email"), RemoteViews(registrar.context().packageName, R.layout.simple_list_item_1).apply {
-                        setTextViewText(android.R.id.text1, "$c email for my_username")
+                    setValue(field.autofillId, AutofillValue.forText(pw.username), RemoteViews(registrar.context().packageName, R.layout.simple_list_item_1).apply {
+                        setTextViewText(android.R.id.text1, pw.label)
                     })
                 }
                 structure.fieldIds[AutofillInputType.Password]?.forEach { field ->
                     logger.debug("Adding data set for password ${field.autofillId}")
-                    setValue(field.autofillId, AutofillValue.forText("password"), RemoteViews(registrar.context().packageName, R.layout.simple_list_item_1).apply {
-                        setTextViewText(android.R.id.text1, "$c password for my_username")
+                    setValue(field.autofillId, AutofillValue.forText(pw.password), RemoteViews(registrar.context().packageName, R.layout.simple_list_item_1).apply {
+                        setTextViewText(android.R.id.text1, pw.label)
                     })
                 }
                 structure.fieldIds[AutofillInputType.UserName]?.forEach { field ->
                     logger.debug("Adding data set for username ${field.autofillId}")
-                    setValue(field.autofillId, AutofillValue.forText("username"), RemoteViews(registrar.context().packageName, R.layout.simple_list_item_1).apply {
-                        setTextViewText(android.R.id.text1, "$c username for my_username")
+                    setValue(field.autofillId, AutofillValue.forText(pw.username), RemoteViews(registrar.context().packageName, R.layout.simple_list_item_1).apply {
+                        setTextViewText(android.R.id.text1, pw.label)
                     })
-                }
-                structure.allNodes.forEach { node ->
-                    if (node.isFocused && node.autofillId != null) {
-                        logger.debug("Setting focus node. ${node.autofillId}")
-                        setValue(node.autofillId!!, AutofillValue.forText("focus"), RemoteViews(registrar.context().packageName, R.layout.simple_list_item_1).apply {
-                            setTextViewText(android.R.id.text1, "$c focus for my_username")
-                        })
-
-                    }
                 }
             }.build()) } }
             .build()

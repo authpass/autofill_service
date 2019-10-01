@@ -4,6 +4,7 @@ import android.annotation.TargetApi
 import android.app.*
 import android.app.assist.AssistStructure
 import android.content.*
+import android.content.pm.PackageManager
 import android.os.*
 import android.service.autofill.*
 import android.view.*
@@ -13,14 +14,27 @@ import androidx.annotation.RequiresApi
 import mu.KotlinLogging
 import android.widget.RemoteViews
 import androidx.annotation.DrawableRes
-import io.flutter.app.FlutterActivity
-import kotlin.reflect.full.memberProperties
 
 
 private val logger = KotlinLogging.logger {}
 
 @RequiresApi(api = Build.VERSION_CODES.O)
 class FlutterMyAutofillService : AutofillService() {
+
+    var unlockLabel = "Autofill"
+
+    override fun onConnected() {
+        super.onConnected()
+        logger.debug("onConnected.")
+        val self = ComponentName(this, javaClass)
+
+        val metaData = packageManager.getServiceInfo(self, PackageManager.GET_META_DATA).metaData
+        metaData.getString("design.codeux.autofill_service.unlock_label")?.let {
+            unlockLabel = it
+        }
+        logger.info("Unlock label will be $unlockLabel")
+    }
+
     override fun onFillRequest(
         request: FillRequest,
         cancellationSignal: CancellationSignal,
@@ -39,7 +53,10 @@ class FlutterMyAutofillService : AutofillService() {
 //                    logger.debug { "Creating custom intent." }
 //                }
         val startIntent = Intent()
-        startIntent.setClassName(applicationContext, "design.codeux.autofill_service_example.MainActivity")
+        // TODO: Figure this out how to do this without hard coding everything..
+        startIntent.setClassName(applicationContext, "design.codeux.authpass.MainActivity")
+        startIntent.action = Intent.ACTION_RUN
+        //"design.codeux.autofill_service_example.MainActivity")
 //        val startIntent = Intent(Intent.ACTION_MAIN).apply {
 //                                `package` = applicationContext.packageName
 //                    logger.debug { "Creating custom intent." }
@@ -60,7 +77,7 @@ class FlutterMyAutofillService : AutofillService() {
             .setAuthentication(
                 parser.autoFillIds.toTypedArray(),
                 intentSender,
-                RemoteViewsHelper.viewsWithAuth(packageName, "Do something")
+                RemoteViewsHelper.viewsWithAuth(packageName, unlockLabel)
             )
         logger.info { "packageName: $packageName" }
         val structure = parser
@@ -71,42 +88,42 @@ class FlutterMyAutofillService : AutofillService() {
         }
         structure.fieldIds.values.forEach { it.sortByDescending { it.heuristic.weight } }
 
-        val fr = fillResponseBuilder
-        listOf(100, 101, 103).map { c ->
-            fr.addDataset(Dataset.Builder(remoteViews()).apply {
-                setId("test $c")
-                if (c != 103) {
-                    setAuthentication(intentSender)
-                }
-                structure.fieldIds[AutofillInputType.Email]?.forEach { field ->
-                    logger.debug("Adding data set for email ${field.autofillId}")
-                    setValue(
-                        field.autofillId,
-                        AutofillValue.forText("some email"),
-                        RemoteViews(packageName, android.R.layout.simple_list_item_1).apply {
-                            setTextViewText(android.R.id.text1, "$c email for my_username")
-                        })
-                }
-                structure.fieldIds[AutofillInputType.Password]?.forEach { field ->
-                    logger.debug("Adding data set for password ${field.autofillId}")
-                    setValue(
-                        field.autofillId,
-                        AutofillValue.forText("password"),
-                        RemoteViews(packageName, android.R.layout.simple_list_item_1).apply {
-                            setTextViewText(android.R.id.text1, "$c password for my_username")
-                        })
-                }
-                structure.fieldIds[AutofillInputType.UserName]?.forEach { field ->
-                    logger.debug("Adding data set for username ${field.autofillId}")
-                    setValue(
-                        field.autofillId,
-                        AutofillValue.forText("username"),
-                        RemoteViews(packageName, android.R.layout.simple_list_item_1).apply {
-                            setTextViewText(android.R.id.text1, "$c username for my_username")
-                        })
-                }
-            }.build())
-        }
+//        val fr = fillResponseBuilder
+//        listOf(100, 101, 103).map { c ->
+//            fr.addDataset(Dataset.Builder(remoteViews()).apply {
+//                setId("test $c")
+//                if (c != 103) {
+//                    setAuthentication(intentSender)
+//                }
+//                structure.fieldIds[AutofillInputType.Email]?.forEach { field ->
+//                    logger.debug("Adding data set for email ${field.autofillId}")
+//                    setValue(
+//                        field.autofillId,
+//                        AutofillValue.forText("some email"),
+//                        RemoteViews(packageName, android.R.layout.simple_list_item_1).apply {
+//                            setTextViewText(android.R.id.text1, "$c email for my_username")
+//                        })
+//                }
+//                structure.fieldIds[AutofillInputType.Password]?.forEach { field ->
+//                    logger.debug("Adding data set for password ${field.autofillId}")
+//                    setValue(
+//                        field.autofillId,
+//                        AutofillValue.forText("password"),
+//                        RemoteViews(packageName, android.R.layout.simple_list_item_1).apply {
+//                            setTextViewText(android.R.id.text1, "$c password for my_username")
+//                        })
+//                }
+//                structure.fieldIds[AutofillInputType.UserName]?.forEach { field ->
+//                    logger.debug("Adding data set for username ${field.autofillId}")
+//                    setValue(
+//                        field.autofillId,
+//                        AutofillValue.forText("username"),
+//                        RemoteViews(packageName, android.R.layout.simple_list_item_1).apply {
+//                            setTextViewText(android.R.id.text1, "$c username for my_username")
+//                        })
+//                }
+//            }.build())
+//        }
 
         val fillResponse = fillResponseBuilder.build()
 
