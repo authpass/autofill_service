@@ -54,15 +54,15 @@ class FlutterMyAutofillService : AutofillService() {
         val context = request.fillContexts.last()
         val parser = AssistStructureParser(context.structure)
 
-        val detectedFields = parser.fieldIds.flatMap { it.value }.size
         var useLabel = unlockLabel
-        if (detectedFields == 0){
+        if (parser.fieldIds[AutofillInputType.Password].isNullOrEmpty()){
+            val detectedFields = parser.fieldIds.flatMap { it.value }.size
             logger.debug { "got autofillPreferences: ${autofillPreferenceStore.autofillPreferences}"}
             if(!autofillPreferenceStore.autofillPreferences.enableDebug) {
                 callback.onSuccess(null)
                 return
             }
-            useLabel = "Debug: No autofill fields detected."
+            useLabel = "Debug: No password fields detected ($detectedFields total)."
         }
 
         val startIntent = Intent()
