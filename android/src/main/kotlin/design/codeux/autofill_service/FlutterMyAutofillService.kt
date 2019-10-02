@@ -57,11 +57,12 @@ class FlutterMyAutofillService : AutofillService() {
         val detectedFields = parser.fieldIds.flatMap { it.value }.size
         var useLabel = unlockLabel
         if (detectedFields == 0){
+            logger.debug { "got autofillPreferences: ${autofillPreferenceStore.autofillPreferences}"}
             if(!autofillPreferenceStore.autofillPreferences.enableDebug) {
                 callback.onSuccess(null)
                 return
             }
-            useLabel = "Debug: No autfill detected."
+            useLabel = "Debug: No autofill fields detected."
         }
 
         val startIntent = Intent()

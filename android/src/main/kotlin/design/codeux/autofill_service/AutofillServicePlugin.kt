@@ -11,7 +11,6 @@ import android.view.autofill.*
 import android.view.autofill.AutofillManager.EXTRA_AUTHENTICATION_RESULT
 import android.widget.RemoteViews
 import androidx.annotation.RequiresApi
-import com.squareup.moshi.Moshi
 import io.flutter.plugin.common.*
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
@@ -42,14 +41,14 @@ class AutofillServicePluginImpl(val registrar: Registrar) : MethodCallHandler,
         registrar.addNewIntentListener(this)
     }
 
-    val autofillManager =
+    private val autofillManager =
         requireNotNull(registrar.activity().getSystemService(AutofillManager::class.java))
+    private val autofillPreferenceStore = AutofillPreferenceStore.getInstance(registrar.context())
     var requestSetAutofillServiceResult: Result? = null
     var lastIntent: Intent? = null
-    val moshi = Moshi.Builder()
-        .build() as Moshi
 
     override fun onMethodCall(call: MethodCall, result: Result) {
+        logger.debug { "got autofillPreferences: ${autofillPreferenceStore.autofillPreferences}"}
         when (call.method) {
             "hasAutofillServicesSupport" ->
                 result.success(true)
@@ -64,7 +63,7 @@ class AutofillServicePluginImpl(val registrar: Registrar) : MethodCallHandler,
                 result.success(null)
             }
             "requestSetAutofillService" -> {
-                val intent = Intent(Settings.ACTION_REQUEST_SET_AUTOFILL_SERVICE);
+                val intent = Intent(Settings.ACTION_REQUEST_SET_AUTOFILL_SERVICE)
                 intent.data = Uri.parse("package:com.example.android.autofill.service")
                 logger.debug { "enableService(): intent=$intent" }
                 requestSetAutofillServiceResult = result
@@ -78,14 +77,12 @@ class AutofillServicePluginImpl(val registrar: Registrar) : MethodCallHandler,
             }
             "getPreferences" -> {
                 result.success(
-                    moshi.adapter(AutofillPreferences::class.java).toJsonValue(
-                        AutofillPreferenceStore.getInstance(registrar.context()).autofillPreferences
-                    )
+                    autofillPreferenceStore.autofillPreferences.toJsonValue()
                 )
             }
             "setPreferences" -> {
                 val prefs = call.argument<Map<String, Any>>("preferences")?.let { data ->
-                    moshi.adapter(AutofillPreferences::class.java).fromJsonValue(data)
+                    AutofillPreferences.fromJsonValue(data)
                 } ?: throw IllegalArgumentException("Invalid preferences object.")
                 AutofillPreferenceStore.getInstance(registrar.context()).autofillPreferences = prefs
                 result.success(true)
@@ -130,7 +127,7 @@ class AutofillServicePluginImpl(val registrar: Registrar) : MethodCallHandler,
                 registrar.context().packageName, "Fill Me"
             )
         }
-        structure.fieldIds.values.forEach { it.sortByDescending { it.heuristic.weight } }
+//        structure.fieldIds.values.forEach { it.sortByDescending { it.heuristic.weight } }
 
         val datasetResponse = FillResponse.Builder()
             .setAuthentication(

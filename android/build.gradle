@@ -50,14 +50,15 @@ dependencies {
     implementation 'com.google.android.material:material:1.0.0'
     implementation "io.github.microutils:kotlin-logging:1.7.6"
 
+    implementation 'androidx.core:core-ktx:1.1.0'
+
     // json deserialize
     implementation "com.squareup.moshi:moshi:1.8.0"
     kapt("com.squareup.moshi:moshi-kotlin-codegen:1.8.0")
 
 
-    // toString debugging (todo: remove me)
-    implementation "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
-    implementation "org.apache.commons:commons-lang3:3.9"
-    implementation "org.apache.commons:commons-text:1.8"
-    implementation 'androidx.core:core-ktx:1.1.0'
+//    // toString debugging (todo: remove me)
+//    implementation "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
+//    implementation "org.apache.commons:commons-lang3:3.9"
+//    implementation "org.apache.commons:commons-text:1.8"
 }

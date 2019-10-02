@@ -2,31 +2,48 @@ package design.codeux.autofill_service
 
 import android.content.*
 import androidx.core.content.edit
-import com.squareup.moshi.JsonClass
+import com.squareup.moshi.*
+import mu.KotlinLogging
+
+private val logger = KotlinLogging.logger {}
 
 @JsonClass(generateAdapter = true)
 data class AutofillPreferences(
-    val enableDebug: Boolean
+    val enableDebug: Boolean = false
 ) {
 
     companion object {
-        private const val PREF_ENABLE_DEBUG = "enableDebug"
+        private const val PREF_JSON_NAME = "AutofillPreferences"
 
-        fun fromPreferences(prefs: SharedPreferences) : AutofillPreferences {
-            return AutofillPreferences(
-                enableDebug = prefs.getBoolean(PREF_ENABLE_DEBUG, false)
-            )
-        }
+        private val moshi = Moshi.Builder()
+            .build() as Moshi
+        private val jsonAdapter get() =
+            requireNotNull(moshi.adapter(AutofillPreferences::class.java))
+
+        fun fromPreferences(prefs: SharedPreferences): AutofillPreferences =
+            prefs.getString(PREF_JSON_NAME, null)?.let(Companion::fromJsonString)
+                ?: AutofillPreferences()
+
+        private fun fromJsonString(jsonString: String) =
+            jsonAdapter.fromJson(jsonString)
+
+        fun fromJsonValue(data: Map<String, Any>): AutofillPreferences? =
+            jsonAdapter.fromJsonValue(data)
     }
 
     fun saveToPreferences(prefs: SharedPreferences) {
         prefs.edit {
-            putBoolean(PREF_ENABLE_DEBUG, enableDebug)
+            putString(PREF_JSON_NAME, toJson())
         }
     }
+
+    fun toJsonValue(): Any? =
+        jsonAdapter.toJsonValue(this)
+
+    private fun toJson(): String = jsonAdapter.toJson(this)
 }
 
-class AutofillPreferenceStore private constructor(val prefs: SharedPreferences) {
+class AutofillPreferenceStore private constructor(private val prefs: SharedPreferences) {
 
 
     companion object {
@@ -37,11 +54,12 @@ class AutofillPreferenceStore private constructor(val prefs: SharedPreferences) 
         private var instance: AutofillPreferenceStore? = null
 
         fun getInstance(context: Context): AutofillPreferenceStore =
-            getInstance(context.getSharedPreferences(SHARED_PREFS_NAME, Context.MODE_PRIVATE))
+            instance ?: getInstance(context.getSharedPreferences(SHARED_PREFS_NAME, Context.MODE_PRIVATE))
 
         private fun getInstance(prefs: SharedPreferences): AutofillPreferenceStore {
             synchronized(lock) {
                 return instance ?: {
+                    logger.debug { "Creating new AutofillPreferenceStore." }
                     val ret = AutofillPreferenceStore(prefs)
                     instance = ret
                     ret
@@ -52,8 +70,8 @@ class AutofillPreferenceStore private constructor(val prefs: SharedPreferences) 
     }
 
     var autofillPreferences: AutofillPreferences = AutofillPreferences.fromPreferences(prefs)
-    set(value) {
-        field = value
-        value.saveToPreferences(prefs)
-    }
+        set(value) {
+            field = value
+            value.saveToPreferences(prefs)
+        }
 }
