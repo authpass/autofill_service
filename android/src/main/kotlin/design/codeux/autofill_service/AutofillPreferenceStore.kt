@@ -39,9 +39,14 @@ class AutofillPreferenceStore private constructor(val prefs: SharedPreferences) 
 
         private fun getInstance(prefs: SharedPreferences): AutofillPreferenceStore {
             synchronized(lock) {
-                return instance ?: AutofillPreferenceStore(prefs)
+                return instance ?: {
+                    val ret = AutofillPreferenceStore(prefs)
+                    instance = ret
+                    ret
+                }()
             }
         }
+
     }
 
     var autofillPreferences: AutofillPreferences = AutofillPreferences.fromPreferences(prefs)
