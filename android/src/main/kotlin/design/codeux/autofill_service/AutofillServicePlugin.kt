@@ -12,7 +12,6 @@ import android.view.autofill.AutofillManager.EXTRA_AUTHENTICATION_RESULT
 import android.widget.RemoteViews
 import androidx.annotation.RequiresApi
 import com.squareup.moshi.Moshi
-import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import io.flutter.plugin.common.*
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
@@ -48,8 +47,6 @@ class AutofillServicePluginImpl(val registrar: Registrar) : MethodCallHandler,
     var requestSetAutofillServiceResult: Result? = null
     var lastIntent: Intent? = null
     val moshi = Moshi.Builder()
-        // ... add your own JsonAdapters and factories ...
-        .add(KotlinJsonAdapterFactory())
         .build() as Moshi
 
     override fun onMethodCall(call: MethodCall, result: Result) {

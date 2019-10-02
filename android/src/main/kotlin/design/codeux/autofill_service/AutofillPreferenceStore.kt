@@ -2,7 +2,9 @@ package design.codeux.autofill_service
 
 import android.content.*
 import androidx.core.content.edit
+import com.squareup.moshi.JsonClass
 
+@JsonClass(generateAdapter = true)
 data class AutofillPreferences(
     val enableDebug: Boolean
 ) {
