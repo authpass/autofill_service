@@ -76,6 +76,7 @@ class FlutterMyAutofillService : AutofillService() {
 //                }
 //        startIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
         startIntent.putExtra("route", "/autofill")
+        startIntent.putExtra("initial_route", "/autofill")
 //        startIntent.putParcelableArrayListExtra("autofillIds", ArrayList(parser.autoFillIds))
         val intentSender: IntentSender = PendingIntent.getActivity(
             this,
