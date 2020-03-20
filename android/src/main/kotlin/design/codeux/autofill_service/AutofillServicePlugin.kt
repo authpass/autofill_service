@@ -144,7 +144,7 @@ class AutofillServicePluginImpl(val registrar: Registrar) : MethodCallHandler,
                                 logger.debug("Setting focus node. ${node.autofillId}")
                                 setValue(
                                     node.autofillId!!,
-                                    AutofillValue.forText("focus"),
+                                    AutofillValue.forText(pw.username),
                                     RemoteViews(
                                         registrar.context().packageName,
                                         android.R.layout.simple_list_item_1

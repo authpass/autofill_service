@@ -77,6 +77,13 @@ class FlutterMyAutofillService : AutofillService() {
 //        startIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
         startIntent.putExtra("route", "/autofill")
         startIntent.putExtra("initial_route", "/autofill")
+        parser.packageName?.let {
+            startIntent.putExtra(
+                "autofillPackageName",
+                it
+            )
+        }
+        parser.webDomain?.let { startIntent.putExtra("autofillWebDomain", it) }
 //        startIntent.putParcelableArrayListExtra("autofillIds", ArrayList(parser.autoFillIds))
         val intentSender: IntentSender = PendingIntent.getActivity(
             this,
@@ -93,7 +100,9 @@ class FlutterMyAutofillService : AutofillService() {
                 intentSender,
                 RemoteViewsHelper.viewsWithAuth(packageName, useLabel)
             )
-        logger.info { "packageName: $packageName" }
+        logger.info { "remoteView for packageName: $packageName -- " +
+            "detected autofill packageName: ${parser.packageName} " +
+            "webDomain: ${parser.webDomain}" }
 
         val fillResponse = fillResponseBuilder.build()
 
