@@ -154,11 +154,19 @@ class AutofillServicePluginImpl(val registrar: Registrar) : MethodCallHandler,
 
                             }
                         }
-                        structure.fieldIds[AutofillInputType.Email]?.forEach { field ->
-                            logger.debug("Adding data set for email ${field.autofillId}")
+                        structure.fieldIds.flatMap { entry ->
+                            entry.value.map { entry.key to it }
+                        }.sortedByDescending { it.second.heuristic.weight }.forEach { (type, field) ->
+                            logger.debug("Adding data set at weight ${field.heuristic.weight} for ${type.toString().padStart(10)} for ${field.autofillId}")
+
+                            val autoFillValue = if (type == AutofillInputType.Password) {
+                                pw.password
+                            } else {
+                                pw.username
+                            }
                             setValue(
                                 field.autofillId,
-                                AutofillValue.forText(pw.username),
+                                AutofillValue.forText(autoFillValue),
                                 RemoteViews(
                                     registrar.context().packageName,
                                     android.R.layout.simple_list_item_1
@@ -166,30 +174,42 @@ class AutofillServicePluginImpl(val registrar: Registrar) : MethodCallHandler,
                                     setTextViewText(android.R.id.text1, pw.label)
                                 })
                         }
-                        structure.fieldIds[AutofillInputType.Password]?.forEach { field ->
-                            logger.debug("Adding data set for password ${field.autofillId}")
-                            setValue(
-                                field.autofillId,
-                                AutofillValue.forText(pw.password),
-                                RemoteViews(
-                                    registrar.context().packageName,
-                                    android.R.layout.simple_list_item_1
-                                ).apply {
-                                    setTextViewText(android.R.id.text1, pw.label)
-                                })
-                        }
-                        structure.fieldIds[AutofillInputType.UserName]?.forEach { field ->
-                            logger.debug("Adding data set for username ${field.autofillId}")
-                            setValue(
-                                field.autofillId,
-                                AutofillValue.forText(pw.username),
-                                RemoteViews(
-                                    registrar.context().packageName,
-                                    android.R.layout.simple_list_item_1
-                                ).apply {
-                                    setTextViewText(android.R.id.text1, pw.label)
-                                })
-                        }
+//                        structure.fieldIds[AutofillInputType.Email]?.forEach { field ->
+//                            logger.debug("Adding data set for email ${field.autofillId}")
+//                            setValue(
+//                                field.autofillId,
+//                                AutofillValue.forText(pw.username),
+//                                RemoteViews(
+//                                    registrar.context().packageName,
+//                                    android.R.layout.simple_list_item_1
+//                                ).apply {
+//                                    setTextViewText(android.R.id.text1, pw.label)
+//                                })
+//                        }
+//                        structure.fieldIds[AutofillInputType.Password]?.forEach { field ->
+//                            logger.debug("Adding data set for password ${field.autofillId}")
+//                            setValue(
+//                                field.autofillId,
+//                                AutofillValue.forText(pw.password),
+//                                RemoteViews(
+//                                    registrar.context().packageName,
+//                                    android.R.layout.simple_list_item_1
+//                                ).apply {
+//                                    setTextViewText(android.R.id.text1, pw.label)
+//                                })
+//                        }
+//                        structure.fieldIds[AutofillInputType.UserName]?.forEach { field ->
+//                            logger.debug("Adding data set for username ${field.autofillId}")
+//                            setValue(
+//                                field.autofillId,
+//                                AutofillValue.forText(pw.username),
+//                                RemoteViews(
+//                                    registrar.context().packageName,
+//                                    android.R.layout.simple_list_item_1
+//                                ).apply {
+//                                    setTextViewText(android.R.id.text1, pw.label)
+//                                })
+//                        }
                     }.build())
                 }
             }
