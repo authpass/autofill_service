@@ -96,7 +96,7 @@ class FlutterMyAutofillService : AutofillService() {
         // Build a FillResponse object that requires authentication.
         val fillResponseBuilder: FillResponse.Builder = FillResponse.Builder()
             .setAuthentication(
-                parser.autoFillIds.toTypedArray(),
+                parser.autoFillIds.distinct().toTypedArray(),
                 intentSender,
                 RemoteViewsHelper.viewsWithAuth(packageName, useLabel)
             )
