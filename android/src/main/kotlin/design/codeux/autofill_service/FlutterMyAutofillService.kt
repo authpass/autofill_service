@@ -14,6 +14,7 @@ import androidx.annotation.RequiresApi
 import mu.KotlinLogging
 import android.widget.RemoteViews
 import androidx.annotation.DrawableRes
+import java.lang.RuntimeException
 import java.util.*
 
 
@@ -109,7 +110,15 @@ class FlutterMyAutofillService : AutofillService() {
 
         val fillResponse = fillResponseBuilder.build()
 
-        callback.onSuccess(fillResponse)
+        try {
+            callback.onSuccess(fillResponse)
+        } catch (e: TransactionTooLargeException) {
+            throw RuntimeException(
+              "Too many auto fill ids discovered ${autoFillIds.size} for " +
+                "${parser.webDomain},  ${parser.packageName}",
+              e
+            )
+        }
     }
 
     override fun onSaveRequest(request: SaveRequest, callback: SaveCallback) {
