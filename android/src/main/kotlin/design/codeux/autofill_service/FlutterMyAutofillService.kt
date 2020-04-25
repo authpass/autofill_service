@@ -93,16 +93,19 @@ class FlutterMyAutofillService : AutofillService() {
         ).intentSender
         logger.debug { "startIntent:$startIntent (${startIntent.extras}) - sender: $intentSender" }
 
+        val autoFillIds = parser.autoFillIds.distinct()
+
         // Build a FillResponse object that requires authentication.
         val fillResponseBuilder: FillResponse.Builder = FillResponse.Builder()
             .setAuthentication(
-                parser.autoFillIds.distinct().toTypedArray(),
+                autoFillIds.toTypedArray(),
                 intentSender,
                 RemoteViewsHelper.viewsWithAuth(packageName, useLabel)
             )
         logger.info { "remoteView for packageName: $packageName -- " +
             "detected autofill packageName: ${parser.packageName} " +
-            "webDomain: ${parser.webDomain}" }
+            "webDomain: ${parser.webDomain}" +
+          "autoFillIds: ${autoFillIds.size}" }
 
         val fillResponse = fillResponseBuilder.build()
 
