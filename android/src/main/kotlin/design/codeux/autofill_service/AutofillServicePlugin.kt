@@ -53,11 +53,7 @@ class AutofillServicePluginImpl(val registrar: Registrar) : MethodCallHandler,
             "hasAutofillServicesSupport" ->
                 result.success(true)
             "hasEnabledAutofillServices" ->
-                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
-                    result.success(null)
-                } else {
-                    result.success(autofillManager.hasEnabledAutofillServices())
-                }
+                result.success(autofillManager.hasEnabledAutofillServices())
             "disableAutofillServices" -> {
                 autofillManager.disableAutofillServices()
                 result.success(null)
@@ -272,6 +268,8 @@ class AutofillServicePlugin : MethodCallHandler {
         when (call.method) {
             "hasAutofillServicesSupport" ->
                 result.success(false)
+            "hasEnabledAutofillServices" ->
+                result.success(null)
             else -> result.notImplemented()
         }
     }
