@@ -6,9 +6,13 @@ import android.os.*
 import android.view.*
 import android.view.autofill.AutofillId
 import androidx.annotation.RequiresApi
+import com.squareup.moshi.JsonClass
 import mu.KotlinLogging
 
 private val logger = KotlinLogging.logger {}
+
+@JsonClass(generateAdapter = true)
+data class WebDomain (val scheme: String?, val domain: String)
 
 @RequiresApi(Build.VERSION_CODES.O)
 class AssistStructureParser(structure: AssistStructure) {
@@ -16,8 +20,8 @@ class AssistStructureParser(structure: AssistStructure) {
     val autoFillIds = mutableListOf<AutofillId>()
     val allNodes = mutableListOf<AssistStructure.ViewNode>()
 
-    var packageName: String? = null
-    var webDomain: String? = null
+    var packageName = HashSet<String>()
+    var webDomain = HashSet<WebDomain>()
 
     val fieldIds =
         mutableMapOf<AutofillInputType, MutableList<MatchedField>>()
@@ -97,11 +101,19 @@ class AssistStructureParser(structure: AssistStructure) {
             logger.debug { "$depth     viewNode no hints, text:${viewNode.text} and hint:${viewNode.hint} and inputType:${viewNode.inputType}" }
         }
 
-        if (viewNode.idPackage != null) {
-            packageName = viewNode.idPackage
+       viewNode.idPackage?.let { idPackage ->
+            packageName.add(idPackage)
         }
-        if (viewNode.webDomain != null) {
-            webDomain = viewNode.webDomain
+        viewNode.webDomain?.let { myWebDomain ->
+            webDomain.add(
+                WebDomain(
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                        viewNode.webScheme
+                    } else {
+                        null
+                    }, myWebDomain
+                )
+            )
         }
         viewNode.autofillId?.let { autofillId ->
             AutofillInputType.values().forEach { type ->

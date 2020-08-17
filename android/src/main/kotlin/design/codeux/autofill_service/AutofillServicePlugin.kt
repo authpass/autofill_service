@@ -67,6 +67,15 @@ class AutofillServicePluginImpl(val registrar: Registrar) : MethodCallHandler,
                     .startActivityForResult(intent,
                         REQUEST_CODE_SET_AUTOFILL_SERVICE
                     )
+                // result will be delivered in onActivityResult!
+            }
+            // method available while we are handling an autofill request.
+            "getAutofillMetadata" -> {
+                val metadata = registrar.activity()?.intent?.getStringExtra(
+                    AutofillMetadata.EXTRA_NAME
+                )?.let(AutofillMetadata.Companion::fromJsonString)
+                logger.debug { "Got metadata: $metadata" }
+                result.success(metadata?.toJson())
             }
             "resultWithDataset" -> {
                 resultWithDataset(call, result)

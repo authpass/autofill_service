@@ -47,6 +47,17 @@ class AutofillService {
         true;
   }
 
+  Future<AutofillMetadata> getAutofillMetadata() async {
+    final result = await _channel
+        .invokeMethod<Map<dynamic, dynamic>>('getAutofillMetadata');
+    _logger.fine(
+        'Got result for getAutofillMetadata $result (${result.runtimeType})');
+    if (result == null) {
+      return null;
+    }
+    return AutofillMetadata.fromJson(result);
+  }
+
   Future<AutofillServiceStatus> status() async {
     if (!Platform.isAndroid) {
       return AutofillServiceStatus.unsupported;
@@ -91,4 +102,50 @@ class AutofillService {
     await _channel.invokeMethod<void>(
         'setPreferences', {'preferences': preferences.toJson()});
   }
+}
+
+class AutofillMetadata {
+  AutofillMetadata({this.packageNames, this.webDomains});
+  factory AutofillMetadata.fromJson(Map<dynamic, dynamic> json) =>
+      AutofillMetadata(
+        packageNames: (json['packageNames'] as Iterable)
+            .map((dynamic e) => e as String)
+            .toSet(),
+        webDomains: (json['webDomains'] as Iterable)
+            ?.map((dynamic e) =>
+                AutofillWebDomain.fromJson(e as Map<dynamic, dynamic>))
+            ?.toSet(),
+      );
+
+  final Set<String> packageNames;
+  final Set<AutofillWebDomain> webDomains;
+
+  @override
+  String toString() => toJson()?.toString();
+
+  Map<String, Object> toJson() => {
+        'packageNames': packageNames,
+        'webDomains': webDomains?.map((e) => e.toJson()),
+      };
+}
+
+class AutofillWebDomain {
+  AutofillWebDomain({this.scheme, this.domain});
+
+  factory AutofillWebDomain.fromJson(Map<dynamic, dynamic> json) =>
+      AutofillWebDomain(
+        scheme: json['scheme'] as String,
+        domain: json['domain'] as String,
+      );
+
+  final String scheme;
+  final String domain;
+
+  @override
+  String toString() => toJson().toString();
+
+  Map<String, Object> toJson() => {
+        'scheme': scheme,
+        'domain': domain,
+      };
 }

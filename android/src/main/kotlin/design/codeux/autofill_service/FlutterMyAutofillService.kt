@@ -1,20 +1,18 @@
 package design.codeux.autofill_service
 
 import android.annotation.TargetApi
-import android.app.*
+import android.app.PendingIntent
 import android.app.assist.AssistStructure
 import android.content.*
 import android.content.pm.PackageManager
 import android.os.*
 import android.service.autofill.*
-import android.view.*
-import android.view.autofill.*
-
-import androidx.annotation.RequiresApi
-import mu.KotlinLogging
+import android.view.View
+import android.view.autofill.AutofillId
 import android.widget.RemoteViews
-import androidx.annotation.DrawableRes
-import java.lang.RuntimeException
+import androidx.annotation.*
+import com.squareup.moshi.*
+import mu.KotlinLogging
 import java.util.*
 
 
@@ -78,13 +76,19 @@ class FlutterMyAutofillService : AutofillService() {
 //        startIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
         startIntent.putExtra("route", "/autofill")
         startIntent.putExtra("initial_route", "/autofill")
-        parser.packageName?.let {
+        parser.packageName.firstOrNull()?.let {
             startIntent.putExtra(
                 "autofillPackageName",
                 it
             )
         }
-        parser.webDomain?.let { startIntent.putExtra("autofillWebDomain", it) }
+        parser.webDomain.firstOrNull()?.let { startIntent.putExtra("autofillWebDomain", it.domain) }
+        // We serialize to string, because the Parcelable made some serious problems.
+        // https://stackoverflow.com/a/39478479/109219
+        startIntent.putExtra(
+            AutofillMetadata.EXTRA_NAME,
+            AutofillMetadata(parser.packageName, parser.webDomain).toJsonString()
+        )
 //        startIntent.putParcelableArrayListExtra("autofillIds", ArrayList(parser.autoFillIds))
         val intentSender: IntentSender = PendingIntent.getActivity(
             this,
@@ -127,6 +131,28 @@ class FlutterMyAutofillService : AutofillService() {
     }
 
 
+}
+
+@JsonClass(generateAdapter = true)
+data class AutofillMetadata(
+    val packageNames: Set<String>,
+    val webDomains: Set<WebDomain>
+) {
+    companion object {
+        const val EXTRA_NAME = "AutofillMetadata"
+
+        private val moshi = Moshi.Builder()
+            .build() as Moshi
+        private val jsonAdapter
+            get() =
+                requireNotNull(moshi.adapter(AutofillMetadata::class.java))
+
+        fun fromJsonString(json: String) =
+            requireNotNull(jsonAdapter.fromJson(json))
+    }
+
+    fun toJson(): Any? = jsonAdapter.toJsonValue(this)
+    fun toJsonString(): String = jsonAdapter.toJson(this)
 }
 
 
