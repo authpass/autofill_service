@@ -82,7 +82,12 @@ class FlutterMyAutofillService : AutofillService() {
                 it
             )
         }
-        parser.webDomain.firstOrNull()?.let { startIntent.putExtra("autofillWebDomain", it.domain) }
+        if (parser.webDomain.size > 1) {
+            logger.warn { "Found multiple autofillWebDomain: ${parser.webDomain}" }
+        }
+        parser.webDomain
+                .firstOrNull { it.domain.isNotBlank() }
+                ?.let { startIntent.putExtra("autofillWebDomain", it.domain) }
         // We serialize to string, because the Parcelable made some serious problems.
         // https://stackoverflow.com/a/39478479/109219
         startIntent.putExtra(

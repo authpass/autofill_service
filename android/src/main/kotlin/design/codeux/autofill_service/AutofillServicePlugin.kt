@@ -159,10 +159,16 @@ class AutofillServicePluginImpl(val registrar: Registrar) : MethodCallHandler,
 
                             }
                         }
+                        val filledAutofillIds = mutableSetOf<AutofillId>();
                         structure.fieldIds.flatMap { entry ->
                             entry.value.map { entry.key to it }
-                        }.sortedByDescending { it.second.heuristic.weight }.forEach { (type, field) ->
-                            logger.debug("Adding data set at weight ${field.heuristic.weight} for ${type.toString().padStart(10)} for ${field.autofillId}")
+                        }.sortedByDescending { it.second.heuristic.weight }.forEach allIds@{ (type, field) ->
+                            val isNewAutofillId = filledAutofillIds.add(field.autofillId);
+                            logger.debug("Adding data set at weight ${field.heuristic.weight} for ${type.toString().padStart(10)} for ${field.autofillId} ${"Ignored".takeIf { !isNewAutofillId } ?: ""}")
+
+                            if (!isNewAutofillId) {
+                                return@allIds
+                            }
 
                             val autoFillValue = if (type == AutofillInputType.Password) {
                                 pw.password
