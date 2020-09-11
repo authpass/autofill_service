@@ -216,7 +216,7 @@ private fun MutableList<AutofillHeuristic>.htmlAttribute(weight: Int, attr: Stri
 private fun MutableList<AutofillHeuristic>.defaults(hint: String, match: String) {
     autofillHint(900, hint)
     idEntry(800, match)
-    heuristic(700) { idEntry?.toLowerCase(Locale.ROOT)?.contains("user") == true }
+    heuristic(700) { idEntry?.toLowerCase(Locale.ROOT)?.contains(match) == true }
 }
 
 @TargetApi(Build.VERSION_CODES.O)
@@ -231,6 +231,7 @@ enum class AutofillInputType(val heuristics: List<AutofillHeuristic>) {
         defaults(View.AUTOFILL_HINT_USERNAME, "user")
         htmlAttribute(400, "name", "user")
         htmlAttribute(400, "name", "username")
+        heuristic(300) { hint?.toLowerCase(java.util.Locale.ROOT)?.contains("login") == true }
     }),
     Password(mutableListOf<AutofillHeuristic>().apply {
         defaults(View.AUTOFILL_HINT_PASSWORD, "password")
