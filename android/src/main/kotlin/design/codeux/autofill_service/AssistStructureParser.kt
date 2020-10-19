@@ -91,7 +91,7 @@ class AssistStructureParser(structure: AssistStructure) {
         logger.debug { "$depth     We got autofillId: ${viewNode.autofillId} autofillOptions:${viewNode.autofillOptions} autofillType:${viewNode.autofillType} autofillValue:${viewNode.autofillValue} " }
 //        logger.debug { "$depth ` We got node: ${viewNode.toStringReflective()}" }
 
-        viewNode.autofillId.let(autoFillIds::add)
+        viewNode.autofillId?.let { autoFillIds.add(it) }
         if (viewNode.autofillHints?.isNotEmpty() == true) {
             // If the client app provides autofill hints, you can obtain them using:
             logger.debug { "$depth     autofillHints: ${viewNode.autofillHints?.contentToString()}" }
