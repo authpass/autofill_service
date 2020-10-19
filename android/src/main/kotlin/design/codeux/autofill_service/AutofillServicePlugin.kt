@@ -173,7 +173,7 @@ class AutofillServicePluginImpl(val context: Context) : MethodCallHandler,
                             entry.value.map { entry.key to it }
                         }.sortedByDescending { it.second.heuristic.weight }.forEach allIds@{ (type, field) ->
                             val isNewAutofillId = filledAutofillIds.add(field.autofillId)
-                            logger.debug("Adding data set at weight ${field.heuristic.weight} for ${type.toString().padStart(10)} for ${field.autofillId} ${"Ignored".takeIf { !isNewAutofillId } ?: ""}")
+                            logger.debug("Adding data set at weight ${field.heuristic.weight} for ${type.toString().padStart(10)} for ${field.autofillId} ${field.heuristic.message} ${"Ignored".takeIf { !isNewAutofillId } ?: ""}")
 
                             if (!isNewAutofillId) {
                                 return@allIds

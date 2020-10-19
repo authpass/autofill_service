@@ -33,6 +33,9 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+
+        <meta-data android:name="design.codeux.autofill_service.ACTIVITY_NAME"
+            android:value="design.codeux.autofill_service_example.MainActivity" />
     </application>
 
 </manifest>

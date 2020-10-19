@@ -64,7 +64,11 @@ class _MyAppState extends State<MyApp> {
                 child: const Text('finish'),
                 onPressed: () async {
                   _logger.fine('Starting request.');
-                  final response = await AutofillService().resultWithDataset();
+                  final response = await AutofillService().resultWithDataset(
+                    label: 'this is the label',
+                    username: 'dummyUsername',
+                    password: 'dpwd',
+                  );
                   _logger.fine('resultWithDataset $response');
                   await _updateStatus();
                 },

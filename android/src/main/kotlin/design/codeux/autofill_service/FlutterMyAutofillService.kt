@@ -64,9 +64,15 @@ class FlutterMyAutofillService : AutofillService() {
             useLabel = "Debug: No password fields detected ($detectedFields total)."
         }
 
+        logger.debug { "Trying to fetch package info." }
+        val activityName = packageManager.getApplicationInfo(packageName, PackageManager.GET_META_DATA).run {
+            metaData.getString("design.codeux.autofill_service.ACTIVITY_NAME")
+        } ?: "design.codeux.authpass.MainActivity"
+        logger.debug("got activity $activityName")
+
         val startIntent = Intent()
         // TODO: Figure this out how to do this without hard coding everything..
-        startIntent.setClassName(applicationContext, "design.codeux.authpass.MainActivity")
+        startIntent.setClassName(applicationContext, activityName)
         startIntent.action = Intent.ACTION_RUN
         //"design.codeux.autofill_service_example.MainActivity")
 //        val startIntent = Intent(Intent.ACTION_MAIN).apply {
@@ -190,14 +196,16 @@ object RemoteViewsHelper {
 
 data class AutofillHeuristic(
     val weight: Int,
+    val message: String?,
     val predicate: AssistStructure.ViewNode.(node: AssistStructure.ViewNode) -> Boolean
 )
 
 private fun MutableList<AutofillHeuristic>.heuristic(
     weight: Int,
+    message: String? = null,
     predicate: AssistStructure.ViewNode.(node: AssistStructure.ViewNode) -> Boolean
 ) =
-    add(AutofillHeuristic(weight, predicate))
+    add(AutofillHeuristic(weight, message, predicate))
 
 
 @TargetApi(Build.VERSION_CODES.O)
@@ -210,7 +218,7 @@ private fun MutableList<AutofillHeuristic>.idEntry(weight: Int, match: String) =
 
 @TargetApi(Build.VERSION_CODES.O)
 private fun MutableList<AutofillHeuristic>.htmlAttribute(weight: Int, attr: String, value: String) =
-    heuristic(weight) { htmlInfo?.attributes?.firstOrNull { it.first == attr && it.second == value } != null }
+    heuristic(weight, "html[$attr=$value]") { htmlInfo?.attributes?.firstOrNull { it.first == attr && it.second == value } != null }
 
 @TargetApi(Build.VERSION_CODES.O)
 private fun MutableList<AutofillHeuristic>.defaults(hint: String, match: String) {
@@ -221,24 +229,24 @@ private fun MutableList<AutofillHeuristic>.defaults(hint: String, match: String)
 
 @TargetApi(Build.VERSION_CODES.O)
 enum class AutofillInputType(val heuristics: List<AutofillHeuristic>) {
+    Password(mutableListOf<AutofillHeuristic>().apply {
+        defaults(View.AUTOFILL_HINT_PASSWORD, "password")
+        htmlAttribute(400, "type", "password")
+        heuristic(240, "text variation password") { inputType.hasFlag(android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD) }
+        heuristic(239) { inputType.hasFlag(android.text.InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD) }
+        heuristic(238) { inputType.hasFlag(android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD) }
+    }),
     Email(mutableListOf<AutofillHeuristic>().apply {
-        defaults(View.AUTOFILL_HINT_EMAIL_ADDRESS, "email")
-        htmlAttribute(400, "type", "email")
-        htmlAttribute(300, "name", "email")
-        heuristic(200) { hint?.toLowerCase(java.util.Locale.ROOT)?.contains("mail") == true }
+        defaults(View.AUTOFILL_HINT_EMAIL_ADDRESS, "mail")
+        htmlAttribute(400, "type", "mail")
+        htmlAttribute(300, "name", "mail")
+        heuristic(250, "hint=mail") { hint?.toLowerCase(java.util.Locale.ROOT)?.contains("mail") == true }
     }),
     UserName(mutableListOf<AutofillHeuristic>().apply {
         defaults(View.AUTOFILL_HINT_USERNAME, "user")
         htmlAttribute(400, "name", "user")
         htmlAttribute(400, "name", "username")
         heuristic(300) { hint?.toLowerCase(java.util.Locale.ROOT)?.contains("login") == true }
-    }),
-    Password(mutableListOf<AutofillHeuristic>().apply {
-        defaults(View.AUTOFILL_HINT_PASSWORD, "password")
-        htmlAttribute(400, "type", "password")
-        heuristic(500) { inputType.hasFlag(android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD) }
-        heuristic(499) { inputType.hasFlag(android.text.InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD) }
-        heuristic(498) { inputType.hasFlag(android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD) }
     }),
 }
 
