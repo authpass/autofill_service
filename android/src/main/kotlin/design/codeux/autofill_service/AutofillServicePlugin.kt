@@ -36,7 +36,7 @@ data class PwDataset(
 
 @RequiresApi(Build.VERSION_CODES.O)
 class AutofillServicePluginImpl(val context: Context) : MethodCallHandler,
-    PluginRegistry.ActivityResultListener, PluginRegistry.NewIntentListener, ActivityAware {
+        PluginRegistry.ActivityResultListener, PluginRegistry.NewIntentListener, ActivityAware {
 
     companion object {
         // some creative way so we have some more or less unique result code? 🤷️
@@ -301,7 +301,7 @@ class AutofillServicePlugin : FlutterPlugin, ActivityAware {
     override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         val channel = MethodChannel(binding.binaryMessenger, "codeux.design/autofill_service")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val impl = AutofillServicePluginImpl(binding.applicationContext)
+            impl = AutofillServicePluginImpl(binding.applicationContext)
             channel.setMethodCallHandler(impl)
         } else {
             channel.setMethodCallHandler { call, result ->
