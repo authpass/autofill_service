@@ -20,7 +20,7 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  bool _hasEnabledAutofillServices;
+  bool? _hasEnabledAutofillServices;
 
   @override
   void initState() {
@@ -38,7 +38,7 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     _logger.info(
-        'Building AppState. defaultRouteName:${WidgetsBinding.instance.window.defaultRouteName}');
+        'Building AppState. defaultRouteName:${WidgetsBinding.instance!.window.defaultRouteName}');
     return MaterialApp(
       home: Scaffold(
         appBar: AppBar(

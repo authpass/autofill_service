@@ -1,21 +1,21 @@
 name: autofill_service
 description: Implements a very simple version for android autofill service as a plugin for flutter.
-version: 0.0.1
+version: 0.1.0
 author: Herbert Poul <herbert@codeux.design>
 homepage: https://github.com/authpass/autofill_service
 
 environment:
-  sdk: ">=2.1.0 <3.0.0"
+  sdk: '>=2.12.0 <3.0.0'
 
 dependencies:
   flutter:
     sdk: flutter
-  logging: ^0.11.3+2
+  logging: ^1.0.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  pedantic: '>=1.7.0'
+  pedantic: ^1.11.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

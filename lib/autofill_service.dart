@@ -13,7 +13,7 @@ enum AutofillServiceStatus {
 }
 
 class AutofillPreferences {
-  AutofillPreferences({this.enableDebug});
+  AutofillPreferences({required this.enableDebug});
 
   factory AutofillPreferences.fromJson(Map<dynamic, dynamic> json) =>
       AutofillPreferences(enableDebug: json['enableDebug'] as bool);
@@ -39,7 +39,8 @@ class AutofillService {
     if (!Platform.isAndroid) {
       return false;
     }
-    return await _channel.invokeMethod('hasAutofillServicesSupport');
+    return (await _channel.invokeMethod<bool>('hasAutofillServicesSupport'))
+        as bool;
   }
 
   Future<bool> get hasEnabledAutofillServices async {
@@ -47,7 +48,7 @@ class AutofillService {
         true;
   }
 
-  Future<AutofillMetadata> getAutofillMetadata() async {
+  Future<AutofillMetadata?> getAutofillMetadata() async {
     final result = await _channel
         .invokeMethod<Map<dynamic, dynamic>>('getAutofillMetadata');
     _logger.fine(
@@ -74,16 +75,18 @@ class AutofillService {
   }
 
   Future<bool> requestSetAutofillService() async {
-    return await _channel.invokeMethod('requestSetAutofillService');
+    return (await _channel.invokeMethod<bool>('requestSetAutofillService'))
+        as bool;
   }
 
   Future<bool> resultWithDataset(
-      {String label, String username, String password}) async {
-    return await _channel.invokeMethod('resultWithDataset', <String, dynamic>{
+      {String? label, String? username, String? password}) async {
+    return (await _channel.invokeMethod<bool>(
+        'resultWithDataset', <String, dynamic>{
       'label': label,
       'username': username,
       'password': password
-    });
+    })) as bool;
   }
 
   Future<void> disableAutofillServices() async {
@@ -92,7 +95,8 @@ class AutofillService {
 
   Future<AutofillPreferences> getPreferences() async {
     final json =
-        await _channel.invokeMapMethod<String, dynamic>('getPreferences');
+        await (_channel.invokeMapMethod<String, dynamic>('getPreferences')
+            as FutureOr<Map<String, dynamic>>);
     _logger.fine('Got preferences $json');
     return AutofillPreferences.fromJson(json);
   }
@@ -105,46 +109,46 @@ class AutofillService {
 }
 
 class AutofillMetadata {
-  AutofillMetadata({this.packageNames, this.webDomains});
+  AutofillMetadata({required this.packageNames, required this.webDomains});
   factory AutofillMetadata.fromJson(Map<dynamic, dynamic> json) =>
       AutofillMetadata(
         packageNames: (json['packageNames'] as Iterable)
             .map((dynamic e) => e as String)
             .toSet(),
         webDomains: (json['webDomains'] as Iterable)
-            ?.map((dynamic e) =>
+            .map((dynamic e) =>
                 AutofillWebDomain.fromJson(e as Map<dynamic, dynamic>))
-            ?.toSet(),
+            .toSet(),
       );
 
   final Set<String> packageNames;
   final Set<AutofillWebDomain> webDomains;
 
   @override
-  String toString() => toJson()?.toString();
+  String toString() => toJson().toString();
 
   Map<String, Object> toJson() => {
         'packageNames': packageNames,
-        'webDomains': webDomains?.map((e) => e.toJson()),
+        'webDomains': webDomains.map((e) => e.toJson()),
       };
 }
 
 class AutofillWebDomain {
-  AutofillWebDomain({this.scheme, this.domain});
+  AutofillWebDomain({this.scheme, required this.domain});
 
   factory AutofillWebDomain.fromJson(Map<dynamic, dynamic> json) =>
       AutofillWebDomain(
-        scheme: json['scheme'] as String,
+        scheme: json['scheme'] as String?,
         domain: json['domain'] as String,
       );
 
-  final String scheme;
+  final String? scheme;
   final String domain;
 
   @override
   String toString() => toJson().toString();
 
-  Map<String, Object> toJson() => {
+  Map<String, Object?> toJson() => {
         'scheme': scheme,
         'domain': domain,
       };
