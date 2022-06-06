@@ -2,33 +2,31 @@ package design.codeux.autofill_service
 
 import android.content.*
 import androidx.core.content.edit
-import com.squareup.moshi.*
 import mu.KotlinLogging
+import org.json.JSONObject
 
 private val logger = KotlinLogging.logger {}
 
-@JsonClass(generateAdapter = true)
 data class AutofillPreferences(
     val enableDebug: Boolean = false
 ) {
 
     companion object {
         private const val PREF_JSON_NAME = "AutofillPreferences"
-
-        private val moshi = Moshi.Builder()
-            .build() as Moshi
-        private val jsonAdapter get() =
-            requireNotNull(moshi.adapter(AutofillPreferences::class.java))
+        private const val ENABLE_DEBUG = "enableDebug"
 
         fun fromPreferences(prefs: SharedPreferences): AutofillPreferences =
             prefs.getString(PREF_JSON_NAME, null)?.let(Companion::fromJsonString)
                 ?: AutofillPreferences()
 
+        @Suppress("ComplexRedundantLet")
         private fun fromJsonString(jsonString: String) =
-            jsonAdapter.fromJson(jsonString)
+            JSONObject(jsonString).let {
+                AutofillPreferences(enableDebug = it.getBoolean(ENABLE_DEBUG))
+            }
 
         fun fromJsonValue(data: Map<String, Any>): AutofillPreferences? =
-            jsonAdapter.fromJsonValue(data)
+            AutofillPreferences(enableDebug = (data.get(ENABLE_DEBUG) as? Boolean) ?: false)
     }
 
     fun saveToPreferences(prefs: SharedPreferences) {
@@ -37,10 +35,12 @@ data class AutofillPreferences(
         }
     }
 
-    fun toJsonValue(): Any? =
-        jsonAdapter.toJsonValue(this)
+    fun toJsonValue() =
+        JSONObject().apply {
+            put(ENABLE_DEBUG, enableDebug)
+        }
 
-    private fun toJson(): String = jsonAdapter.toJson(this)
+    private fun toJson(): String = toJsonValue().toString()
 }
 
 class AutofillPreferenceStore private constructor(private val prefs: SharedPreferences) {

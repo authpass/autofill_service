@@ -11,8 +11,9 @@ import android.view.View
 import android.view.autofill.AutofillId
 import android.widget.RemoteViews
 import androidx.annotation.*
-import com.squareup.moshi.*
 import mu.KotlinLogging
+import org.json.JSONArray
+import org.json.JSONObject
 import java.util.*
 
 
@@ -54,10 +55,10 @@ class FlutterMyAutofillService : AutofillService() {
         val parser = AssistStructureParser(context.structure)
 
         var useLabel = unlockLabel
-        if (parser.fieldIds[AutofillInputType.Password].isNullOrEmpty()){
+        if (parser.fieldIds[AutofillInputType.Password].isNullOrEmpty()) {
             val detectedFields = parser.fieldIds.flatMap { it.value }.size
-            logger.debug { "got autofillPreferences: ${autofillPreferenceStore.autofillPreferences}"}
-            if(!autofillPreferenceStore.autofillPreferences.enableDebug) {
+            logger.debug { "got autofillPreferences: ${autofillPreferenceStore.autofillPreferences}" }
+            if (!autofillPreferenceStore.autofillPreferences.enableDebug) {
                 callback.onSuccess(null)
                 return
             }
@@ -65,9 +66,10 @@ class FlutterMyAutofillService : AutofillService() {
         }
 
         logger.debug { "Trying to fetch package info." }
-        val activityName = packageManager.getApplicationInfo(packageName, PackageManager.GET_META_DATA).run {
-            metaData.getString("design.codeux.autofill_service.ACTIVITY_NAME")
-        } ?: "design.codeux.authpass.MainActivity"
+        val activityName =
+            packageManager.getApplicationInfo(packageName, PackageManager.GET_META_DATA).run {
+                metaData.getString("design.codeux.autofill_service.ACTIVITY_NAME")
+            } ?: "design.codeux.authpass.MainActivity"
         logger.debug("got activity $activityName")
 
         val startIntent = Intent()
@@ -92,8 +94,8 @@ class FlutterMyAutofillService : AutofillService() {
             logger.warn { "Found multiple autofillWebDomain: ${parser.webDomain}" }
         }
         parser.webDomain
-                .firstOrNull { it.domain.isNotBlank() }
-                ?.let { startIntent.putExtra("autofillWebDomain", it.domain) }
+            .firstOrNull { it.domain.isNotBlank() }
+            ?.let { startIntent.putExtra("autofillWebDomain", it.domain) }
         // We serialize to string, because the Parcelable made some serious problems.
         // https://stackoverflow.com/a/39478479/109219
         startIntent.putExtra(
@@ -118,10 +120,12 @@ class FlutterMyAutofillService : AutofillService() {
                 intentSender,
                 RemoteViewsHelper.viewsWithAuth(packageName, useLabel)
             )
-        logger.info { "remoteView for packageName: $packageName -- " +
-            "detected autofill packageName: ${parser.packageName} " +
-            "webDomain: ${parser.webDomain}" +
-          "autoFillIds: ${autoFillIds.size}" }
+        logger.info {
+            "remoteView for packageName: $packageName -- " +
+                    "detected autofill packageName: ${parser.packageName} " +
+                    "webDomain: ${parser.webDomain}" +
+                    "autoFillIds: ${autoFillIds.size}"
+        }
 
         val fillResponse = fillResponseBuilder.build()
 
@@ -129,9 +133,9 @@ class FlutterMyAutofillService : AutofillService() {
             callback.onSuccess(fillResponse)
         } catch (e: TransactionTooLargeException) {
             throw RuntimeException(
-              "Too many auto fill ids discovered ${autoFillIds.size} for " +
-                "${parser.webDomain},  ${parser.packageName}",
-              e
+                "Too many auto fill ids discovered ${autoFillIds.size} for " +
+                        "${parser.webDomain},  ${parser.packageName}",
+                e
             )
         }
     }
@@ -144,26 +148,39 @@ class FlutterMyAutofillService : AutofillService() {
 
 }
 
-@JsonClass(generateAdapter = true)
 data class AutofillMetadata(
     val packageNames: Set<String>,
     val webDomains: Set<WebDomain>
 ) {
     companion object {
         const val EXTRA_NAME = "AutofillMetadata"
-
-        private val moshi = Moshi.Builder()
-            .build() as Moshi
-        private val jsonAdapter
-            get() =
-                requireNotNull(moshi.adapter(AutofillMetadata::class.java))
+        private const val PACKAGE_NAMES = "packageNames"
+        private const val WEB_DOMAINS = "webDomains"
 
         fun fromJsonString(json: String) =
-            requireNotNull(jsonAdapter.fromJson(json))
+            JSONObject(json).run {
+                AutofillMetadata(
+                    packageNames = optJSONArray(PACKAGE_NAMES).map { array, index ->
+                        array.getString(index)
+                    }.toSet(),
+                    webDomains = optJSONArray(WEB_DOMAINS).map { array, index ->
+                        WebDomain.fromJson(array.getJSONObject(index))
+                    }.toSet()
+                )
+            }
     }
 
-    fun toJson(): Any? = jsonAdapter.toJsonValue(this)
-    fun toJsonString(): String = jsonAdapter.toJson(this)
+    fun toJson(): JSONObject = JSONObject().apply {
+        put(PACKAGE_NAMES, JSONArray(webDomains))
+        put(WEB_DOMAINS, JSONArray(webDomains.map { it.toJSONObject() }))
+    }
+    fun toJsonString(): String = toJson().toString()
+}
+
+fun <T> JSONArray.map(f: (array: JSONArray, index: Int) -> T): List<T> {
+    return (0 until length()).map { index ->
+        f(this, index)
+    }
 }
 
 
@@ -218,7 +235,10 @@ private fun MutableList<AutofillHeuristic>.idEntry(weight: Int, match: String) =
 
 @TargetApi(Build.VERSION_CODES.O)
 private fun MutableList<AutofillHeuristic>.htmlAttribute(weight: Int, attr: String, value: String) =
-    heuristic(weight, "html[$attr=$value]") { htmlInfo?.attributes?.firstOrNull { it.first == attr && it.second == value } != null }
+    heuristic(
+        weight,
+        "html[$attr=$value]"
+    ) { htmlInfo?.attributes?.firstOrNull { it.first == attr && it.second == value } != null }
 
 @TargetApi(Build.VERSION_CODES.O)
 private fun MutableList<AutofillHeuristic>.defaults(hint: String, match: String) {
@@ -232,7 +252,10 @@ enum class AutofillInputType(val heuristics: List<AutofillHeuristic>) {
     Password(mutableListOf<AutofillHeuristic>().apply {
         defaults(View.AUTOFILL_HINT_PASSWORD, "password")
         htmlAttribute(400, "type", "password")
-        heuristic(240, "text variation password") { inputType.hasFlag(android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD) }
+        heuristic(
+            240,
+            "text variation password"
+        ) { inputType.hasFlag(android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD) }
         heuristic(239) { inputType.hasFlag(android.text.InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD) }
         heuristic(238) { inputType.hasFlag(android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD) }
     }),
@@ -240,7 +263,9 @@ enum class AutofillInputType(val heuristics: List<AutofillHeuristic>) {
         defaults(View.AUTOFILL_HINT_EMAIL_ADDRESS, "mail")
         htmlAttribute(400, "type", "mail")
         htmlAttribute(300, "name", "mail")
-        heuristic(250, "hint=mail") { hint?.toLowerCase(java.util.Locale.ROOT)?.contains("mail") == true }
+        heuristic(250, "hint=mail") {
+            hint?.toLowerCase(java.util.Locale.ROOT)?.contains("mail") == true
+        }
     }),
     UserName(mutableListOf<AutofillHeuristic>().apply {
         defaults(View.AUTOFILL_HINT_USERNAME, "user")

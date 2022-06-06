@@ -38,7 +38,7 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     _logger.info(
-        'Building AppState. defaultRouteName:${WidgetsBinding.instance!.window.defaultRouteName}');
+        'Building AppState. defaultRouteName:${WidgetsBinding.instance.window.defaultRouteName}');
     return MaterialApp(
       home: Scaffold(
         appBar: AppBar(
@@ -50,7 +50,7 @@ class _MyAppState extends State<MyApp> {
             children: <Widget>[
               Text(
                   'hasEnabledAutofillServices: $_hasEnabledAutofillServices\n'),
-              RaisedButton(
+              ElevatedButton(
                 child: const Text('requestSetAutofillService'),
                 onPressed: () async {
                   _logger.fine('Starting request.');
@@ -60,7 +60,7 @@ class _MyAppState extends State<MyApp> {
                   await _updateStatus();
                 },
               ),
-              RaisedButton(
+              ElevatedButton(
                 child: const Text('finish'),
                 onPressed: () async {
                   _logger.fine('Starting request.');

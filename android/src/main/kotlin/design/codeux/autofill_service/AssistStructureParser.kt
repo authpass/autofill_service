@@ -6,13 +6,28 @@ import android.os.*
 import android.view.*
 import android.view.autofill.AutofillId
 import androidx.annotation.RequiresApi
-import com.squareup.moshi.JsonClass
 import mu.KotlinLogging
+import org.json.JSONObject
 
 private val logger = KotlinLogging.logger {}
 
-@JsonClass(generateAdapter = true)
-data class WebDomain (val scheme: String?, val domain: String)
+data class WebDomain (val scheme: String?, val domain: String) {
+    fun toJSONObject() = JSONObject().apply {
+        putOpt(SCHEME, scheme)
+        put(DOMAIN, domain)
+    }
+
+    companion object {
+        private const val SCHEME = "scheme"
+        private const val DOMAIN = "domain"
+
+        fun fromJson(obj: JSONObject) =
+            WebDomain(
+                scheme = obj.optString(SCHEME),
+                domain = obj.optString(DOMAIN, ""),
+            )
+    }
+}
 
 @RequiresApi(Build.VERSION_CODES.O)
 class AssistStructureParser(structure: AssistStructure) {

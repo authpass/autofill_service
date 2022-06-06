@@ -244,10 +244,10 @@ class AutofillServicePluginImpl(val context: Context) : MethodCallHandler,
         result.success(true)
     }
 
-    override fun onNewIntent(intent: Intent?): Boolean {
+    override fun onNewIntent(intent: Intent): Boolean {
         lastIntent = intent
         logger.info {
-            "We got a new intent. $intent (extras: ${intent?.extras?.keySet()?.map {
+            "We got a new intent. $intent (extras: ${intent.extras?.keySet()?.map {
                 it to intent.extras?.get(
                     it
                 )
