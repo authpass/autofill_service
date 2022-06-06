@@ -95,8 +95,10 @@ class AutofillService {
 
   Future<AutofillPreferences> getPreferences() async {
     final json =
-        await (_channel.invokeMapMethod<String, dynamic>('getPreferences')
-            as FutureOr<Map<String, dynamic>>);
+        await _channel.invokeMapMethod<String, dynamic>('getPreferences');
+    if (json == null) {
+      throw StateError('Got null response from `getPreferences`.');
+    }
     _logger.fine('Got preferences $json');
     return AutofillPreferences.fromJson(json);
   }
