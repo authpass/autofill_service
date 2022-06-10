@@ -13,6 +13,7 @@ import android.os.TransactionTooLargeException
 import android.service.autofill.*
 import android.view.View
 import android.view.autofill.AutofillId
+import android.view.autofill.AutofillManager
 import android.widget.RemoteViews
 import androidx.annotation.DrawableRes
 import androidx.annotation.RequiresApi
@@ -106,6 +107,7 @@ class FlutterMyAutofillService : AutofillService() {
             AutofillMetadata.EXTRA_NAME,
             AutofillMetadata(parser.packageName, parser.webDomain).toJsonString()
         )
+        startIntent.putExtra(AutofillManager.EXTRA_ASSIST_STRUCTURE, context.structure)
 //        startIntent.putParcelableArrayListExtra("autofillIds", ArrayList(parser.autoFillIds))
         val intentSender: IntentSender = PendingIntent.getActivity(
             this,
@@ -174,11 +176,12 @@ data class AutofillMetadata(
             }
     }
 
-    fun toJson(): JSONObject = JSONObject().apply {
-        put(PACKAGE_NAMES, JSONArray(webDomains))
-        put(WEB_DOMAINS, JSONArray(webDomains.map { it.toJSONObject() }))
-    }
-    fun toJsonString(): String = toJson().toString()
+    fun toMap(): Map<Any, Any> = mapOf(
+        PACKAGE_NAMES to webDomains.toList(),
+        WEB_DOMAINS to webDomains.map { it.toMap() },
+    )
+
+    fun toJsonString(): String = JSONObject(toMap()).toString()
 }
 
 fun <T> JSONArray.map(f: (array: JSONArray, index: Int) -> T): List<T> {

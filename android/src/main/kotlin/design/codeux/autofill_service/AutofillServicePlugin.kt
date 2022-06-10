@@ -25,6 +25,7 @@ import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
 import io.flutter.plugin.common.PluginRegistry
 import mu.KotlinLogging
+import org.json.JSONObject
 
 private val logger = KotlinLogging.logger {}
 
@@ -82,14 +83,14 @@ class AutofillServicePluginImpl(val context: Context) : MethodCallHandler,
                     AutofillMetadata.EXTRA_NAME
                 )?.let(AutofillMetadata.Companion::fromJsonString)
                 logger.debug { "Got metadata: $metadata" }
-                result.success(metadata?.toJson())
+                result.success(metadata?.toMap())
             }
             "resultWithDataset" -> {
                 resultWithDataset(call, result)
             }
             "getPreferences" -> {
                 result.success(
-                    autofillPreferenceStore.autofillPreferences.toJsonValue()
+                    autofillPreferenceStore.autofillPreferences.toMap()
                 )
             }
             "setPreferences" -> {
@@ -238,6 +239,7 @@ class AutofillServicePluginImpl(val context: Context) : MethodCallHandler,
             // Send the data back to the service.
             putExtra(EXTRA_AUTHENTICATION_RESULT, datasetResponse)
         }
+        logger.debug { "result: $datasetResponse"}
 
         activity.setResult(RESULT_OK, replyIntent)
         activity.finish()

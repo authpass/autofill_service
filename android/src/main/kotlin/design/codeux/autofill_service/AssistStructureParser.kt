@@ -12,10 +12,10 @@ import org.json.JSONObject
 private val logger = KotlinLogging.logger {}
 
 data class WebDomain (val scheme: String?, val domain: String) {
-    fun toJSONObject() = JSONObject().apply {
-        putOpt(SCHEME, scheme)
-        put(DOMAIN, domain)
-    }
+    fun toMap() = mapOf(
+        SCHEME to scheme,
+        DOMAIN to domain,
+    )
 
     companion object {
         private const val SCHEME = "scheme"

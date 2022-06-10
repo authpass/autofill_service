@@ -25,8 +25,8 @@ data class AutofillPreferences(
                 AutofillPreferences(enableDebug = it.getBoolean(ENABLE_DEBUG))
             }
 
-        fun fromJsonValue(data: Map<String, Any>): AutofillPreferences? =
-            AutofillPreferences(enableDebug = (data.get(ENABLE_DEBUG) as? Boolean) ?: false)
+        fun fromJsonValue(data: Map<String, Any>): AutofillPreferences =
+            AutofillPreferences(enableDebug = (data[ENABLE_DEBUG] as? Boolean) ?: false)
     }
 
     fun saveToPreferences(prefs: SharedPreferences) {
@@ -35,12 +35,12 @@ data class AutofillPreferences(
         }
     }
 
-    fun toJsonValue() =
-        JSONObject().apply {
-            put(ENABLE_DEBUG, enableDebug)
-        }
+    fun toMap() =
+        mapOf(
+            ENABLE_DEBUG to enableDebug,
+        )
 
-    private fun toJson(): String = toJsonValue().toString()
+    private fun toJson(): String = JSONObject(toMap()).toString()
 }
 
 class AutofillPreferenceStore private constructor(private val prefs: SharedPreferences) {
