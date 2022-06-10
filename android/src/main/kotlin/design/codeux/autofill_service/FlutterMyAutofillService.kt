@@ -3,18 +3,22 @@ package design.codeux.autofill_service
 import android.annotation.TargetApi
 import android.app.PendingIntent
 import android.app.assist.AssistStructure
-import android.content.*
+import android.content.ComponentName
+import android.content.Intent
+import android.content.IntentSender
 import android.content.pm.PackageManager
-import android.os.*
+import android.os.Build
+import android.os.CancellationSignal
+import android.os.TransactionTooLargeException
 import android.service.autofill.*
 import android.view.View
 import android.view.autofill.AutofillId
 import android.widget.RemoteViews
-import androidx.annotation.*
+import androidx.annotation.DrawableRes
+import androidx.annotation.RequiresApi
 import mu.KotlinLogging
 import org.json.JSONArray
 import org.json.JSONObject
-import java.util.*
 
 
 private val logger = KotlinLogging.logger {}
@@ -107,7 +111,7 @@ class FlutterMyAutofillService : AutofillService() {
             this,
             0,
             startIntent,
-            PendingIntent.FLAG_CANCEL_CURRENT
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_CANCEL_CURRENT
         ).intentSender
         logger.debug { "startIntent:$startIntent (${startIntent.extras}) - sender: $intentSender" }
 
@@ -244,7 +248,7 @@ private fun MutableList<AutofillHeuristic>.htmlAttribute(weight: Int, attr: Stri
 private fun MutableList<AutofillHeuristic>.defaults(hint: String, match: String) {
     autofillHint(900, hint)
     idEntry(800, match)
-    heuristic(700) { idEntry?.toLowerCase(Locale.ROOT)?.contains(match) == true }
+    heuristic(700) { idEntry?.lowercase()?.contains(match) == true }
 }
 
 @TargetApi(Build.VERSION_CODES.O)
@@ -264,21 +268,23 @@ enum class AutofillInputType(val heuristics: List<AutofillHeuristic>) {
         htmlAttribute(400, "type", "mail")
         htmlAttribute(300, "name", "mail")
         heuristic(250, "hint=mail") {
-            hint?.toLowerCase(java.util.Locale.ROOT)?.contains("mail") == true
+            hint?.lowercase()?.contains("mail") == true
         }
     }),
     UserName(mutableListOf<AutofillHeuristic>().apply {
         defaults(View.AUTOFILL_HINT_USERNAME, "user")
         htmlAttribute(400, "name", "user")
         htmlAttribute(400, "name", "username")
-        heuristic(300) { hint?.toLowerCase(java.util.Locale.ROOT)?.contains("login") == true }
+        heuristic(300) { hint?.lowercase()?.contains("login") == true }
     }),
 }
 
 
-inline fun Int?.hasFlag(flag: Int) = this != null && flag and this == flag
-inline fun Int.withFlag(flag: Int) = this or flag
-inline fun Int.minusFlag(flag: Int) = this and flag.inv()
+fun Int?.hasFlag(flag: Int) = this != null && flag and this == flag
+@Suppress("unused")
+fun Int.withFlag(flag: Int) = this or flag
+@Suppress("unused")
+fun Int.minusFlag(flag: Int) = this and flag.inv()
 
 
 data class MatchedField(val heuristic: AutofillHeuristic, val autofillId: AutofillId)
