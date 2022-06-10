@@ -177,7 +177,7 @@ data class AutofillMetadata(
     }
 
     fun toMap(): Map<Any, Any> = mapOf(
-        PACKAGE_NAMES to webDomains.toList(),
+        PACKAGE_NAMES to packageNames.toList(),
         WEB_DOMAINS to webDomains.map { it.toMap() },
     )
 

@@ -22,6 +22,8 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   bool? _hasEnabledAutofillServices;
 
+  AutofillMetadata? _metadata;
+
   @override
   void initState() {
     super.initState();
@@ -32,6 +34,7 @@ class _MyAppState extends State<MyApp> {
   Future<void> _updateStatus() async {
     _hasEnabledAutofillServices =
         await AutofillService().hasEnabledAutofillServices;
+    _metadata = await AutofillService().getAutofillMetadata();
     setState(() {});
   }
 
@@ -50,6 +53,8 @@ class _MyAppState extends State<MyApp> {
             children: <Widget>[
               Text(
                   'hasEnabledAutofillServices: $_hasEnabledAutofillServices\n'),
+              Text(
+                  'metadata: ${_metadata == null ? 'none' : _metadata?.toJson().toString()}'),
               ElevatedButton(
                 child: const Text('requestSetAutofillService'),
                 onPressed: () async {
