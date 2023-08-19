@@ -24,7 +24,6 @@ if (flutterVersionName == null) {
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
-apply plugin: 'kotlin-android-extensions'
 
 android {
     compileSdkVersion 31
@@ -54,6 +53,7 @@ android {
     lint {
         disable 'InvalidPackage'
     }
+    namespace 'design.codeux.autofill_service_example'
 }
 
 flutter {

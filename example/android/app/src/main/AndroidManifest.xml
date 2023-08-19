@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="design.codeux.autofill_service_example">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <application
         android:label="autofill_service_example"

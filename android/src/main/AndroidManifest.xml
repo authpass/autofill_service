@@ -1,13 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="design.codeux.autofill_service">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <application>
-        <activity
-            android:name=".DummyTestActivity"
-            android:label="@string/title_activity_dummy_test"
-            android:taskAffinity=".DummyTestActivity">
-        </activity>
         <activity
             android:name=".SettingsActivity"
             android:label="@string/title_activity_settings"
