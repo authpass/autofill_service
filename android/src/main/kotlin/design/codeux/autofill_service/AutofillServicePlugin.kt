@@ -156,15 +156,15 @@ class AutofillServicePluginImpl(val context: Context) : MethodCallHandler,
                         setId("test ${pw.username}")
                         structure.allNodes.forEach { node ->
                             if (node.isFocused && node.autofillId != null) {
-                                logger.debug("Setting focus node. ${node.autofillId}")
+                                logger.debug("Setting focus node. {}", node.autofillId)
                                 setValue(
                                     node.autofillId!!,
                                     AutofillValue.forText(pw.username),
                                     RemoteViews(
                                         context.packageName,
-                                        android.R.layout.simple_list_item_1
+                                        R.layout.multidataset_service_list_item
                                     ).apply {
-                                        setTextViewText(android.R.id.text1, pw.label + "(focus)")
+                                        setTextViewText(R.id.text, pw.label + "(focus)")
                                     })
 
                             }
@@ -174,7 +174,7 @@ class AutofillServicePluginImpl(val context: Context) : MethodCallHandler,
                             entry.value.map { entry.key to it }
                         }.sortedByDescending { it.second.heuristic.weight }.forEach allIds@{ (type, field) ->
                             val isNewAutofillId = filledAutofillIds.add(field.autofillId)
-                            logger.debug("Adding data set at weight ${field.heuristic.weight} for ${type.toString().padStart(10)} for ${field.autofillId} ${field.heuristic.message} ${"Ignored".takeIf { !isNewAutofillId } ?: ""}")
+                            logger.debug { "Adding data set at weight ${field.heuristic.weight} for ${type.toString().padStart(10)} for ${field.autofillId} ${field.heuristic.message} ${"Ignored".takeIf { !isNewAutofillId } ?: ""}" }
 
                             if (!isNewAutofillId) {
                                 return@allIds
@@ -190,9 +190,9 @@ class AutofillServicePluginImpl(val context: Context) : MethodCallHandler,
                                 AutofillValue.forText(autoFillValue),
                                 RemoteViews(
                                     context.packageName,
-                                    android.R.layout.simple_list_item_1
+                                    R.layout.multidataset_service_list_item
                                 ).apply {
-                                    setTextViewText(android.R.id.text1, pw.label)
+                                    setTextViewText(R.id.text, pw.label)
                                 })
                         }
 //                        structure.fieldIds[AutofillInputType.Email]?.forEach { field ->
