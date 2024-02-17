@@ -26,7 +26,7 @@ apply plugin: 'kotlin-android'
 
 android {
     namespace "design.codeux.autofill_service"
-    compileSdkVersion 28
+    compileSdk = 34
 
     sourceSets {
         main.java.srcDirs += 'src/main/kotlin'

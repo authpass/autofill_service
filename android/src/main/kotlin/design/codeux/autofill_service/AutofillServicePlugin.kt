@@ -2,6 +2,7 @@ package design.codeux.autofill_service
 
 import android.annotation.SuppressLint
 import android.app.Activity.RESULT_OK
+import android.app.Presentation
 import android.app.assist.AssistStructure
 import android.content.Context
 import android.content.Intent
@@ -10,6 +11,7 @@ import android.os.Build
 import android.provider.Settings
 import android.service.autofill.Dataset
 import android.service.autofill.FillResponse
+import android.service.autofill.Presentations
 import android.view.autofill.AutofillId
 import android.view.autofill.AutofillManager
 import android.view.autofill.AutofillManager.EXTRA_AUTHENTICATION_RESULT
@@ -148,7 +150,7 @@ class AutofillServicePluginImpl(val context: Context) : MethodCallHandler,
             .setAuthentication(
                 structure.autoFillIds.toTypedArray(),
                 null,
-                null
+                null as RemoteViews?
             )
             .apply {
                 pwDatasets.forEach { pw ->
