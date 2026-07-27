@@ -233,19 +233,54 @@ private fun MutableList<AutofillHeuristic>.heuristic(
 
 
 @TargetApi(Build.VERSION_CODES.O)
-private fun MutableList<AutofillHeuristic>.autofillHint(weight: Int, hint: String) =
-    heuristic(weight) { autofillHints?.contains(hint) == true }
+private fun MutableList<AutofillHeuristic>.autofillHint(weight: Int, vararg hints: String) =
+    heuristic(weight, "hint=${hints.joinToString("|")}") {
+        autofillHints?.any { actual -> hints.any { it.equals(actual, ignoreCase = true) } } == true
+    }
 
 @TargetApi(Build.VERSION_CODES.O)
 private fun MutableList<AutofillHeuristic>.idEntry(weight: Int, match: String) =
     heuristic(weight) { idEntry == match }
 
 @TargetApi(Build.VERSION_CODES.O)
+private fun AssistStructure.ViewNode.htmlAttribute(attr: String): String? =
+    htmlInfo?.attributes?.firstOrNull { it.first == attr }?.second
+
+@TargetApi(Build.VERSION_CODES.O)
 private fun MutableList<AutofillHeuristic>.htmlAttribute(weight: Int, attr: String, value: String) =
-    heuristic(
-        weight,
-        "html[$attr=$value]"
-    ) { htmlInfo?.attributes?.firstOrNull { it.first == attr && it.second == value } != null }
+    heuristic(weight, "html[$attr=$value]") {
+        htmlAttribute(attr).equals(value, ignoreCase = true)
+    }
+
+@TargetApi(Build.VERSION_CODES.O)
+private fun MutableList<AutofillHeuristic>.htmlAttributeContains(
+    weight: Int,
+    attr: String,
+    value: String
+) =
+    heuristic(weight, "html[$attr*=$value]") {
+        htmlAttribute(attr)?.lowercase()?.contains(value) == true
+    }
+
+/**
+ * Chromium based browsers pass their own field classification along with the virtual view
+ * structure. The values are the (stable) names of chromium's `FieldType` enum.
+ * https://chromium.googlesource.com/chromium/src/+/HEAD/components/android_autofill/README.md
+ */
+@TargetApi(Build.VERSION_CODES.O)
+private fun MutableList<AutofillHeuristic>.browserPrediction(weight: Int, types: Set<String>) =
+    BROWSER_PREDICTION_ATTRIBUTES.forEachIndexed { index, attr ->
+        heuristic(weight - index, "html[$attr in $types]") {
+            val prediction = htmlAttribute(attr)?.uppercase()
+            prediction != null && types.contains(prediction)
+        }
+    }
+
+private val BROWSER_PREDICTION_ATTRIBUTES = listOf(
+    "computed-autofill-hints",
+    "ua-autofill-hints",
+    "crowdsourcing-autofill-hints",
+)
 
 @TargetApi(Build.VERSION_CODES.O)
 private fun MutableList<AutofillHeuristic>.defaults(hint: String, match: String) {
@@ -256,9 +291,22 @@ private fun MutableList<AutofillHeuristic>.defaults(hint: String, match: String)
 
 @TargetApi(Build.VERSION_CODES.O)
 enum class AutofillInputType(val heuristics: List<AutofillHeuristic>) {
+    // Password must always win over UserName/Email on the same node, so all of its
+    // heuristics are weighted above the ones which only look at names and hints.
     Password(mutableListOf<AutofillHeuristic>().apply {
         defaults(View.AUTOFILL_HINT_PASSWORD, "password")
-        htmlAttribute(400, "type", "password")
+        // html autocomplete attribute, as forwarded by browsers.
+        autofillHint(890, "current-password", "new-password")
+        htmlAttribute(880, "type", "password")
+        browserPrediction(
+            870, setOf(
+                "PASSWORD",
+                "ACCOUNT_CREATION_PASSWORD",
+                "NEW_PASSWORD",
+                "PROBABLY_NEW_PASSWORD",
+                "CONFIRMATION_PASSWORD",
+            )
+        )
         heuristic(
             240,
             "text variation password"
@@ -268,17 +316,34 @@ enum class AutofillInputType(val heuristics: List<AutofillHeuristic>) {
     }),
     Email(mutableListOf<AutofillHeuristic>().apply {
         defaults(View.AUTOFILL_HINT_EMAIL_ADDRESS, "mail")
-        htmlAttribute(400, "type", "mail")
-        htmlAttribute(300, "name", "mail")
+        autofillHint(600, "email")
+        htmlAttribute(500, "type", "email")
+        browserPrediction(450, setOf("EMAIL_ADDRESS", "USERNAME_AND_EMAIL_ADDRESS"))
+        htmlAttributeContains(400, "name", "mail")
+        htmlAttributeContains(390, "id", "mail")
         heuristic(250, "hint=mail") {
             hint?.lowercase()?.contains("mail") == true
         }
+        htmlAttributeContains(240, "label", "mail")
     }),
     UserName(mutableListOf<AutofillHeuristic>().apply {
         defaults(View.AUTOFILL_HINT_USERNAME, "user")
-        htmlAttribute(400, "name", "user")
-        htmlAttribute(400, "name", "username")
+        browserPrediction(
+            450, setOf(
+                "USERNAME",
+                "USERNAME_AND_EMAIL_ADDRESS",
+                "SINGLE_USERNAME",
+                "SINGLE_USERNAME_FORGOT_PASSWORD",
+                "SINGLE_USERNAME_WITH_INTERMEDIATE_VALUES",
+            )
+        )
+        htmlAttributeContains(400, "name", "user")
+        htmlAttributeContains(390, "id", "user")
+        htmlAttributeContains(380, "name", "login")
+        htmlAttributeContains(370, "id", "login")
         heuristic(300) { hint?.lowercase()?.contains("login") == true }
+        htmlAttributeContains(230, "label", "user")
+        htmlAttributeContains(220, "label", "login")
     }),
 }
 

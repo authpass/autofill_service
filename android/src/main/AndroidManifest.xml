@@ -1,6 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!--
+    Required to query (and open the settings of) chromium based browsers, to find out
+    whether the user enabled "Autofill using another service". see BrowserAutofillStatus.kt
+    -->
+    <queries>
+        <provider android:authorities="com.android.chrome.AutofillThirdPartyModeContentProvider" />
+        <provider android:authorities="com.chrome.beta.AutofillThirdPartyModeContentProvider" />
+        <provider android:authorities="com.chrome.dev.AutofillThirdPartyModeContentProvider" />
+        <provider android:authorities="com.chrome.canary.AutofillThirdPartyModeContentProvider" />
+    </queries>
+
     <application>
         <activity
             android:name=".SettingsActivity"

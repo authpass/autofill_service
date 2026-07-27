@@ -79,6 +79,27 @@ class AutofillServicePluginImpl(val context: Context) : MethodCallHandler,
                         )
                 // result will be delivered in onActivityResult!
             }
+            "getBrowserAutofillStatus" -> {
+                result.success(BrowserAutofill.queryStatus(context).map { it.toMap() })
+            }
+            "openBrowserAutofillSettings" -> {
+                val packageName = call.argument<String>("packageName")
+                    ?: throw IllegalArgumentException("Missing `packageName` argument.")
+                val intent = BrowserAutofill.settingsIntent(packageName)
+                val activity = this.activity
+                if (activity == null) {
+                    logger.warn { "No activity available to open $intent" }
+                    result.success(false)
+                    return
+                }
+                try {
+                    activity.startActivity(intent)
+                    result.success(true)
+                } catch (e: Exception) {
+                    logger.warn(e) { "Unable to open browser settings $intent" }
+                    result.success(false)
+                }
+            }
             // method available while we are handling an autofill request.
             "getAutofillMetadata" -> {
                 val metadata = activity?.intent?.getStringExtra(

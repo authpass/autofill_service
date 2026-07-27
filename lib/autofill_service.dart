@@ -48,6 +48,34 @@ class AutofillService {
         true;
   }
 
+  /// Chromium based browsers only forward form data to the autofill framework
+  /// after the user enabled "Autofill using another service" in the browser
+  /// settings. Returns the state of that setting for all installed browsers
+  /// which expose it (empty on other platforms and for older browsers).
+  Future<List<BrowserAutofillStatus>> getBrowserAutofillStatus() async {
+    if (!Platform.isAndroid) {
+      return [];
+    }
+    final result =
+        await _channel.invokeListMethod<dynamic>('getBrowserAutofillStatus');
+    _logger.fine('Got browser autofill status $result');
+    return result
+            ?.map((dynamic e) =>
+                BrowserAutofillStatus.fromJson(e as Map<dynamic, dynamic>))
+            .toList() ??
+        [];
+  }
+
+  /// Opens the settings of the given browser, where the user can enable
+  /// "Autofill using another service".
+  Future<bool> openBrowserAutofillSettings(String packageName) async {
+    return (await _channel.invokeMethod<bool>(
+          'openBrowserAutofillSettings',
+          <String, dynamic>{'packageName': packageName},
+        )) ==
+        true;
+  }
+
   Future<AutofillMetadata?> getAutofillMetadata() async {
     final result = await _channel
         .invokeMethod<Map<dynamic, dynamic>>('getAutofillMetadata');
@@ -132,6 +160,40 @@ class AutofillMetadata {
   Map<String, Object> toJson() => {
         'packageNames': packageNames,
         'webDomains': webDomains.map((e) => e.toJson()),
+      };
+}
+
+/// State of the "Autofill using another service" setting of a chromium based
+/// browser. While [thirdPartyModeEnabled] is false, the browser will not
+/// forward any form data to the autofill framework.
+class BrowserAutofillStatus {
+  BrowserAutofillStatus({
+    required this.packageName,
+    required this.label,
+    required this.thirdPartyModeEnabled,
+  });
+
+  factory BrowserAutofillStatus.fromJson(Map<dynamic, dynamic> json) =>
+      BrowserAutofillStatus(
+        packageName: json['packageName'] as String,
+        label: json['label'] as String,
+        thirdPartyModeEnabled: json['thirdPartyModeEnabled'] as bool,
+      );
+
+  final String packageName;
+
+  /// Name of the browser as displayed to the user, e.g. `Chrome`.
+  final String label;
+
+  final bool thirdPartyModeEnabled;
+
+  @override
+  String toString() => toJson().toString();
+
+  Map<String, Object> toJson() => {
+        'packageName': packageName,
+        'label': label,
+        'thirdPartyModeEnabled': thirdPartyModeEnabled,
       };
 }
 

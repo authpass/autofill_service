@@ -2,19 +2,30 @@
 <autofill-service xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools" tools:targetApi="p"
     android:settingsActivity="design.codeux.autofill_service.SettingsActivity">
+    <!--
+    Chrome dropped support for autofill compatibility mode (the accessibility based
+    fallback) in July 2025. Since then it talks to the autofill framework natively,
+    but only if the user enables
+    "Settings > Autofill services > Autofill using another service".
+    Requesting compat mode for those versions is useless and makes the platform
+    install the accessibility bridge in Chrome, which competes with Chrome's own
+    virtual view structure. So we cap the version code at the last Chrome release
+    which still supported compat mode (~Chrome 137).
+    See https://android-developers.googleblog.com/2025/02/chrome-3p-autofill-services-update.html
+    -->
     <compatibility-package
         android:name="com.android.chrome"
-        android:maxLongVersionCode="10000000000"
+        android:maxLongVersionCode="711900039"
          />
     <compatibility-package
         android:name="com.chrome.beta"
-        android:maxLongVersionCode="10000000000"/>
+        android:maxLongVersionCode="711900039"/>
     <compatibility-package
         android:name="com.chrome.dev"
-        android:maxLongVersionCode="10000000000"/>
+        android:maxLongVersionCode="711900039"/>
     <compatibility-package
         android:name="com.chrome.canary"
-        android:maxLongVersionCode="10000000000"/>
+        android:maxLongVersionCode="711900039"/>
     <compatibility-package
         android:name="com.microsoft.emmx"
         android:maxLongVersionCode="10000000000"/>
